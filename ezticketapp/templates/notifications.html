@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Thông báo - EzTicket{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1>Thông báo của bạn</h1>
+            <p class="text-muted">Xem các thông báo mới nhất và đánh dấu đã đọc.</p>
+        </div>
+        <a href="{{ url_for('read_all_notifications') }}" class="btn btn-sm btn-primary">Đánh dấu đã đọc tất cả</a>
+    </div>
+
+    {% if notifications %}
+        <div class="list-group">
+            {% for notification in notifications %}
+                <div class="list-group-item {% if not notification.is_read %}list-group-item-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">{{ notification.title }}</h5>
+                            <p class="mb-1">{{ notification.message }}</p>
+                            <small class="text-muted">{{ notification.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                        <div class="text-end">
+                            {% if not notification.is_read %}
+                                <span class="badge bg-danger mb-2">Mới</span>
+                            {% else %}
+                                <span class="badge bg-secondary mb-2">Đã đọc</span>
+                            {% endif %}
+                            <a href="{{ url_for('read_notification', notification_id=notification.id) }}" class="btn btn-sm btn-outline-secondary">Đánh dấu đọc</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">Không có thông báo nào.</div>
+    {% endif %}
+</div>
+{% endblock %}

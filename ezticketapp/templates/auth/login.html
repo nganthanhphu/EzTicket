@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Đăng nhập - EzTicket{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/auth.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-form-wrapper">
+        <h1 class="auth-title">Đăng nhập</h1>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-danger" role="alert">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <form action="/api/login" method="POST" class="auth-form" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="email" class="form-label">Tên đăng nhập</label>
+                <input 
+                    type="text" 
+                    id="email" 
+                    name="email" 
+                    class="form-control form-control-auth"
+                    placeholder="Nhập email của bạn"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Mật khẩu</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-control form-control-auth"
+                    placeholder="Nhập mật khẩu"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="btn-auth-submit">Đăng nhập</button>
+        </form>
+
+        <div class="auth-footer">
+            <a href="#" class="auth-link">Quên mật khẩu?</a>
+        </div>
+
+        <div class="auth-switch">
+            <p>Chưa có tài khoản? <a href="{{ url_for('register') }}" class="auth-switch-link">Đăng ký ngay</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

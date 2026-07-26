@@ -1,5 +1,5 @@
 from enum import Enum as PyEnum
-from ezticketapp import db, app
+from ezticketapp import db,app
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
 
@@ -57,7 +57,6 @@ class Event(BaseModel):
     organizer_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     organizer = relationship("User", uselist=False)
     tickets = relationship("EventTicket", backref="event", lazy=True)
-
 
 class EventTicket(BaseModel):
     event_id = Column(Integer, ForeignKey('event.id'), nullable=False)

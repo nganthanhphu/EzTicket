@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    {% if session.user_avatar %}
+        <div class="d-flex align-items-center mb-4">
+            <img src="{{ session.user_avatar }}" alt="{{ session.user_full_name }}" class="rounded-circle" style="width:80px; height:80px; object-fit:cover; margin-right:16px;" />
+            <div>
+                <h2>Xin chào, {{ session.user_full_name }}!</h2>
+                <p>Bạn đã đăng nhập thành công. Chúc bạn một ngày trải nghiệm tốt với EzTicket.</p>
+            </div>
+        </div>
+    {% else %}
+        <h1>Welcome to the Home Page</h1>
+        <p>This is the home page of the EzTicket application.</p>
+    {% endif %}
+</div>
+{% endblock %}
