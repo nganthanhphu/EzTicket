@@ -5,10 +5,15 @@
         <span class="logo-box">Ez</span> Ticket
     </div>
 
-    <div class="search-bar">
-        <input type="text" placeholder="nhập sự kiện bạn muốn">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-    </div>
+    <form id="header-search-form" class="search-bar" method="get" action="{{ url_for('home') }}">
+        <input type="text" name="keyword" value="{{ request.args.get('keyword', '') }}" placeholder="nhập sự kiện bạn muốn">
+        <input type="hidden" name="event_type" value="{{ request.args.get('event_type', '') }}">
+        <input type="hidden" name="ticket_type" value="{{ request.args.get('ticket_type', '') }}">
+        <input type="hidden" name="location" value="{{ request.args.get('location', '') }}">
+        <button type="submit" class="search-submit" aria-label="Tìm kiếm">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+    </form>
 
     <div class="user-actions">
         <div class="action-item">

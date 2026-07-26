@@ -1,18 +1,50 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    {% if session.user_avatar %}
-        <div class="d-flex align-items-center mb-4">
-            <img src="{{ session.user_avatar }}" alt="{{ session.user_full_name }}" class="rounded-circle" style="width:80px; height:80px; object-fit:cover; margin-right:16px;" />
-            <div>
-                <h2>Xin chào, {{ session.user_full_name }}!</h2>
-                <p>Bạn đã đăng nhập thành công. Chúc bạn một ngày trải nghiệm tốt với EzTicket.</p>
-            </div>
+<section class="homepage-shell">
+  <div class="homepage-hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Gợi ý sự kiện</p>
+      <h1>Khám phá và đặt vé nhanh chóng</h1>
+      <p>Chọn sự kiện hot, theo dõi thông tin và đặt vé chỉ trong vài bước.</p>
+    </div>
+  </div>
+
+  <section class="filter-panel {% if not request.args.get('keyword') %}hidden{% endif %}" id="filter-panel">
+    <form id="filter-form" method="get" action="{{ url_for('home') }}">
+      <input type="hidden" name="keyword" value="{{ request.args.get('keyword','') }}">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label>Loại sự kiện</label>
+          <select name="event_type">
+            <option value="">Tất cả loại</option>
+            {% for type in event_types %}
+            <option value="{{ type.id }}" {% if request.args.get('event_type','') == type.id|string %}selected{% endif %}>{{ type.name }}</option>
+            {% endfor %}
+          </select>
         </div>
-    {% else %}
-        <h1>Welcome to the Home Page</h1>
-        <p>This is the home page of the EzTicket application.</p>
-    {% endif %}
-</div>
+        <div class="filter-field">
+          <label>Loại vé</label>
+          <select name="ticket_type">
+            <option value="">Tất cả vé</option>
+            {% for ticket in ticket_types %}
+            <option value="{{ ticket.id }}" {% if request.args.get('ticket_type','') == ticket.id|string %}selected{% endif %}>{{ ticket.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Địa điểm</label>
+          <input type="text" name="location" value="{{ request.args.get('location','') }}" placeholder="Nhập địa điểm">
+        </div>
+        <div class="filter-field filter-actions">
+          <button type="submit" class="button-secondary">Áp dụng bộ lọc</button>
+          <a href="{{ url_for('home') }}" class="button-secondary clear-button">Xóa bộ lọc</a>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <div id="event-list-target">
+    {% include '_event_list.html' %}
+  </div>
 {% endblock %}

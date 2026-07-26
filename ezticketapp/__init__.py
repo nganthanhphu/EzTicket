@@ -1,12 +1,10 @@
 import os
-
 from dotenv import load_dotenv
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 import cloudinary
-import flask
-
+import cloudinary.uploader  
 load_dotenv()
 
 
@@ -18,13 +16,9 @@ app.config["PAGE_SIZE"] = 10
 
 db = SQLAlchemy(app=app)
 
-from ezticketapp.dao import get_user_by_id
-
 login_manager = LoginManager()
 login_manager.init_app(app)
-@login_manager.user_loader
-def load_user(user_id):
-    return get_user_by_id(int(user_id))
+
 login_manager.login_view = 'login'
 cloudinary.config(
     cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),

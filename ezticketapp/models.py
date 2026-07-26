@@ -1,5 +1,5 @@
 from enum import Enum as PyEnum
-from ezticketapp import db,app
+from ezticketapp import app, db
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
 
