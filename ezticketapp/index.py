@@ -1,10 +1,29 @@
-import cloudinary
-from flask import jsonify, render_template, request, redirect, url_for, session, flash
-from ezticketapp import app, dao
-from ezticketapp.decorator import anonymous_required, run_validations
-from cloudinary.uploader import upload  
-from ezticketapp.models import User
 import hashlib
+import cloudinary
+from ezticketapp import login_manager
+
+from flask import (
+    jsonify,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    flash
+)
+
+from cloudinary.uploader import upload
+from ezticketapp import app, dao
+
+from ezticketapp.decorator import (
+    anonymous_required,
+    run_validations,
+)
+
+from ezticketapp.models import (
+    User
+)
+
 def register_routes(app):
     @app.route("/")
     def home():
@@ -48,6 +67,202 @@ def register_routes(app):
             per_page=per_page,
         )
         return render_template("_event_list.html", events=events)
+
+    @app.route("/events/<int:event_id>")
+    def event_detail(event_id):
+        event = dao.get_event_by_id(event_id)
+
+        if event is None:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("home"))
+
+        return render_template(
+            "event_detail.html",
+            event=event
+        )
+
+    @app.route("/tickets")
+    def ticket_list():
+        page = request.args.get("page", 1, type=int)
+
+        keyword = (
+                request.args.get("keyword") or ""
+        ).strip()
+
+        status = request.args.get("status")
+
+        tickets = dao.load_orders(
+            page=page,
+            keyword=keyword,
+            status=status,
+            per_page=10
+        )
+
+        stats = dao.ticket_statistics()
+
+        return render_template(
+            "ticket/list.html",
+            tickets=tickets,
+            stats=stats,
+            keyword=keyword,
+            status=status
+        )
+
+    @app.route("/tickets/<int:order_id>")
+    def ticket_detail(order_id):
+        order = dao.get_order_detail(order_id)
+
+        if order is None:
+            flash("Không tìm thấy vé.")
+            return redirect(url_for("ticket_list"))
+
+        return render_template(
+            "ticket/detail.html",
+            order=order
+        )
+
+    @app.route("/tickets/pending")
+    def pending_ticket():
+        page = request.args.get(
+            "page",
+            1,
+            type=int
+        )
+
+        keyword = (
+                request.args.get("keyword") or ""
+        ).strip()
+
+        tickets = dao.load_pending_orders(
+            page=page,
+            keyword=keyword
+        )
+
+        stats = dao.ticket_statistics()
+
+        return render_template(
+            "ticket/list.html",
+            tickets=tickets,
+            stats=stats,
+            keyword=keyword,
+            status="PENDING"
+        )
+
+    @app.route(
+        "/tickets/<int:order_id>/approve",
+        methods=["POST"]
+    )
+    def approve_ticket(order_id):
+        success, msg = dao.approve_order(order_id)
+
+        flash(msg)
+
+        return redirect(
+            url_for(
+                "ticket_detail",
+                order_id=order_id
+            )
+        )
+
+    @app.route(
+        "/tickets/<int:order_id>/cancel",
+        methods=["POST"]
+    )
+    def cancel_ticket(order_id):
+        success, msg = dao.cancel_order(order_id)
+
+        flash(msg)
+
+        return redirect(
+            url_for(
+                "ticket_detail",
+                order_id=order_id
+            )
+        )
+
+    @app.route("/tickets/search")
+    def search_ticket():
+        keyword = (
+                request.args.get("keyword") or ""
+        ).strip()
+
+        return redirect(
+            url_for(
+                "ticket_list",
+                keyword=keyword
+            )
+        )
+
+    @app.route("/tickets/filter")
+    def filter_ticket():
+        status = request.args.get("status")
+
+        return redirect(
+            url_for(
+                "ticket_list",
+                status=status
+            )
+        )
+
+    @app.route("/api/tickets/<int:order_id>")
+    def api_ticket_detail(order_id):
+
+        order = dao.get_order_detail(order_id)
+
+        if order is None:
+            return jsonify({
+                "success": False
+            })
+
+        return jsonify({
+
+            "id": order.id,
+
+            "customer": order.user.full_name,
+
+            "email": order.user.email,
+
+            "status": order.status.value,
+
+            "date": order.date.strftime(
+                "%d/%m/%Y %H:%M"
+            ),
+
+            "total_price": order.total_price
+
+        })
+
+    @app.route(
+        "/api/tickets/<int:order_id>/approve",
+        methods=["POST"]
+    )
+    def api_approve(order_id):
+
+        success, msg = dao.approve_order(order_id)
+
+        return jsonify({
+
+            "success": success,
+
+            "message": msg
+
+        })
+
+    @app.route(
+        "/api/tickets/<int:order_id>/cancel",
+        methods=["POST"]
+    )
+    def api_cancel(order_id):
+
+        success, msg = dao.cancel_order(order_id)
+
+        return jsonify({
+
+            "success": success,
+
+            "message": msg
+
+        })
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
@@ -155,6 +370,10 @@ def register_auth_route(app):
     def logout():
         session.clear()
         return redirect(url_for('home'))
+
+@login_manager.user_loader
+def load_user(user_id):
+    return dao.load_user(user_id)
 
 register_routes(app)
 register_auth_route(app)

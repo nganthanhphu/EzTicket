@@ -1,9 +1,22 @@
-from datetime import datetime
 import hashlib
 import re
-from .models import User, Event, EventType, TicketType, EventTicket
-from flask_login import current_user    
+
+from flask_login import current_user
+from sqlalchemy import or_
+
 from . import db
+from .models import (
+    User,
+    Event,
+    EventType,
+    TicketType,
+    EventTicket,
+    Order,
+    OrderItem,
+    OrderStatus,
+    Role
+)
+
 #tim kiem su kien
 def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=6):
     query = db.session.query(Event).join(Event.event_type, isouter=True)
@@ -140,3 +153,180 @@ def add_user(name, email,  password, avatar):
     db.session.commit()
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+def get_event_by_id(event_id):
+    return Event.query.filter_by(id=event_id).first()
+
+def get_event_ticket(ticket_id):
+    return EventTicket.query.filter_by(id=ticket_id).first()
+
+def get_order(order_id):
+    return Order.query.filter_by(id=order_id).first()
+
+def get_order_items(order_id):
+    return OrderItem.query.filter_by(order_id=order_id).all()
+
+def get_order_detail(order_id):
+    return Order.query.filter_by(id=order_id).first()
+
+#Lay danh sach tat ca ve
+def load_orders(page=1,
+                keyword=None,
+                status=None,
+                per_page=10):
+
+    query = Order.query
+
+    if keyword:
+        query = query.join(User).filter(
+            or_(
+                User.full_name.ilike(f"%{keyword}%"),
+                User.email.ilike(f"%{keyword}%"),
+                Order.authentication_code.ilike(f"%{keyword}%")
+            )
+        )
+
+    if status:
+        query = query.filter(Order.status == status)
+
+    query = query.order_by(Order.date.desc())
+
+    return query.paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+#danh sach cac order dang cho duyet
+def load_pending_orders(page=1,
+                        keyword=None,
+                        per_page=10):
+
+    query = Order.query.filter(
+        Order.status == OrderStatus.PENDING
+    )
+
+    if keyword:
+        query = query.join(User).filter(
+            or_(
+                User.full_name.ilike(f"%{keyword}%"),
+                User.email.ilike(f"%{keyword}%")
+            )
+        )
+
+    query = query.order_by(Order.date.desc())
+
+    return query.paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+#check organizer co quyen xem don khong
+def is_owner_order(order):
+
+    if current_user.role != Role.ORGANIZER:
+        return False
+
+    for item in order.order_items:
+        if item.event_ticket.event.organizer_id == current_user.id:
+            return True
+
+    return False
+
+#duyet ve
+def approve_order(order_id):
+
+    order = get_order(order_id)
+
+    if order is None:
+        return False, "Không tìm thấy đơn hàng."
+
+    if order.status != OrderStatus.PENDING:
+        return False, "Đơn hàng đã được xử lý."
+
+    order.status = OrderStatus.COMPLETED
+
+    db.session.commit()
+
+    return True, "Duyệt vé thành công."
+
+#tu choi ve
+def cancel_order(order_id):
+
+    order = get_order(order_id)
+
+    if order is None:
+        return False, "Không tìm thấy đơn hàng."
+
+    if order.status != OrderStatus.PENDING:
+        return False, "Đơn hàng đã được xử lý."
+
+    order.status = OrderStatus.CANCELLED
+
+    db.session.commit()
+
+    return True, "Đã hủy vé."
+
+def count_orders():
+    return Order.query.count()
+
+def count_pending_orders():
+
+    return Order.query.filter(
+        Order.status == OrderStatus.PENDING
+    ).count()
+
+def count_completed_orders():
+
+    return Order.query.filter(
+        Order.status == OrderStatus.COMPLETED
+    ).count()
+
+def count_cancelled_orders():
+
+    return Order.query.filter(
+        Order.status == OrderStatus.CANCELLED
+    ).count()
+
+def ticket_statistics():
+
+    return {
+        "total": count_orders(),
+        "pending": count_pending_orders(),
+        "completed": count_completed_orders(),
+        "cancelled": count_cancelled_orders()
+    }
+
+def load_my_events():
+
+    return Event.query.filter(
+        Event.organizer_id == current_user.id
+    ).order_by(Event.time.desc()).all()
+
+def load_orders_by_event(event_id):
+
+    return (
+        Order.query
+        .join(OrderItem)
+        .join(EventTicket)
+        .filter(EventTicket.event_id == event_id)
+        .order_by(Order.date.desc())
+        .all()
+    )
+
+def get_order_by_authentication_code(code):
+
+    return Order.query.filter(
+        Order.authentication_code == code
+    ).first()
+
+def is_pending(order_id):
+
+    order = get_order(order_id)
+
+    if order is None:
+        return False
+
+    return order.status == OrderStatus.PENDING

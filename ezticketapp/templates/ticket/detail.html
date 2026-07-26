@@ -1,0 +1,287 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2 class="mb-4">
+
+        Chi tiết vé
+
+    </h2>
+
+
+    <div class="card">
+
+        <div class="card-body">
+
+            <table class="table">
+
+                <tr>
+
+                    <th width="220">
+
+                        Mã đơn
+
+                    </th>
+
+                    <td>
+
+                        {{ order.id }}
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <th>
+
+                        Khách hàng
+
+                    </th>
+
+                    <td>
+
+                        {{ order.user.full_name }}
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <th>
+
+                        Email
+
+                    </th>
+
+                    <td>
+
+                        {{ order.user.email }}
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <th>
+
+                        Ngày đặt
+
+                    </th>
+
+                    <td>
+
+                        {{ order.date.strftime('%d/%m/%Y %H:%M') }}
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <th>
+
+                        Mã xác thực
+
+                    </th>
+
+                    <td>
+
+                        {{ order.authentication_code }}
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <th>
+
+                        Tổng tiền
+
+                    </th>
+
+                    <td>
+
+                        {{ "{:,.0f}".format(order.total_price) }}
+
+                        VNĐ
+
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <th>
+
+                        Trạng thái
+
+                    </th>
+
+                    <td>
+
+                        {% if order.status.value=="PENDING" %}
+
+                        <span class="badge bg-warning">Chờ duyệt</span>
+
+                        {% elif order.status.value=="COMPLETED" %}
+
+                        <span class="badge bg-success">Đã duyệt</span>
+
+                        {% else %}
+
+                        <span class="badge bg-danger">Đã hủy</span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <h4 class="mt-4">
+
+        Danh sách vé
+
+    </h4>
+
+
+    <table class="table table-bordered">
+
+        <thead>
+
+        <tr>
+
+            <th>
+
+                Sự kiện
+
+            </th>
+
+            <th>
+
+                Loại vé
+
+            </th>
+
+            <th>
+
+                Số lượng
+
+            </th>
+
+            <th>
+
+                Đơn giá
+
+            </th>
+
+        </tr>
+
+        </thead>
+
+        <tbody>
+
+        {% for item in order.order_items %}
+
+        <tr>
+
+            <td>
+
+                {{ item.event_ticket.event.name }}
+
+            </td>
+
+            <td>
+
+                {{ item.event_ticket.ticket_type.name }}
+
+            </td>
+
+            <td>
+
+                {{ item.quantity }}
+
+            </td>
+
+            <td>
+
+                {{ "{:,.0f}".format(item.event_ticket.price) }}
+
+                VNĐ
+
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+
+    {% if order.status.value=="PENDING" %}
+
+    <div class="mt-4">
+
+        <form
+                method="post"
+                action="/tickets/{{ order.id }}/approve"
+                style="display:inline;">
+
+            <button class="btn btn-success">
+
+                Duyệt vé
+
+            </button>
+
+        </form>
+
+
+        <form
+                method="post"
+                action="/tickets/{{ order.id }}/cancel"
+                style="display:inline;">
+
+            <button class="btn btn-danger">
+
+                Hủy vé
+
+            </button>
+
+        </form>
+
+    </div>
+
+    {% endif %}
+
+
+    <a
+            href="/tickets"
+            class="btn btn-secondary mt-3">
+
+        Quay lại
+
+    </a>
+
+</div>
+
+{% endblock %}

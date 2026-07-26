@@ -13,13 +13,13 @@
 </head>
 <body>
 
-{% include 'header.html' %}
+{% include 'layout/header.html' %}
 
 <section class="container">
     {% block content %}{% endblock %}
 </section>
 
-{% include 'footer.html' %}
+{% include 'layout/footer.html' %}
 
 <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:9999"></div>
 
@@ -54,7 +54,8 @@
         </script>
     {% endif %}
 {% endwith %}
-{% block scripts %}{% endblock %}
+{% block scripts %}
+{% endblock %}
 
 </body>
 </html>
