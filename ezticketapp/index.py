@@ -1,5 +1,6 @@
 import cloudinary
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
+from flask_login import logout_user ,login_user
 from ezticketapp import app, dao
 from ezticketapp.decorator import anonymous_required, run_validations
 from cloudinary.uploader import upload  
@@ -54,11 +55,13 @@ def register_auth_route(app):
     @anonymous_required
     def login():
         return render_template("auth/login.html")
-
     @app.route("/register", methods=["GET"])
     @anonymous_required
     def register():
         return render_template("auth/register.html")
+
+
+
 
     @app.route("/api/register", methods=["POST"])
     def api_register():
@@ -141,23 +144,33 @@ def register_auth_route(app):
         if user.password != password and user.password != pwd_hash:
             flash("Mật khẩu không đúng.")
             return redirect(url_for('login'))
-
+        login_user(user)
         avatar = getattr(user, 'avatar', None) or ''
         full_name = getattr(user, 'full_name', email)
-        session['user_avatar'] = avatar
-        session['user_full_name'] = full_name
-        session['user_email'] = email
-
+        user.full_name = full_name
+        user.avatar = avatar
         flash("Đăng nhập thành công.")
         return redirect(url_for('home'))
 
+
     @app.route('/logout')
     def logout():
-        session.clear()
+        logout_user()
         return redirect(url_for('home'))
 
-register_routes(app)
-register_auth_route(app)
+
+
+    
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
+    register_routes(app)
+    register_auth_route(app)
+
     app.run(debug=True)

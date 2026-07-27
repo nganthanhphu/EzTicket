@@ -1,5 +1,7 @@
 from enum import Enum as PyEnum
-from ezticketapp import app, db
+
+from flask_login import UserMixin
+from ezticketapp import db,app
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
 
@@ -24,7 +26,7 @@ class BaseModel(db.Model):
     __abstract__ = True
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-class User(BaseModel):
+class User(UserMixin, BaseModel):
     full_name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     avatar = Column(String(255), nullable=True, default="https://res.cloudinary.com/dkzzyue98/image/upload/v1765023207/avatar_ipfsn6.jpg")

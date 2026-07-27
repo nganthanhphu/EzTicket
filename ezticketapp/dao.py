@@ -138,5 +138,3 @@ def add_user(name, email,  password, avatar):
     print(u)
     db.session.add(u)
     db.session.commit()
-def load_user(user_id):
-    return User.query.get(int(user_id))

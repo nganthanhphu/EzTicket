@@ -23,11 +23,11 @@
             <span class="action-text">Vé của tôi</span>
         </div>
         <div class="action-item">
-            {% if session.user_avatar %}
+            {% if current_user.is_authenticated %}
                 <a href="{{ url_for('home') }}" class="avatar-link">
-                    <img src="{{ session.user_avatar }}" alt="{{ session.user_full_name }}" class="rounded-circle" style="width:40px; height:40px; object-fit:cover;" />
+                    <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}" class="rounded-circle" style="width:40px; height:40px; object-fit:cover;" />
                 </a>
-                <span id="header-username" class="action-text">{{ session.user_full_name }}</span>
+                <span id="header-username" class="action-text">{{ current_user.full_name }}</span>
                 <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light text-white ms-2">Đăng xuất</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="avatar-link">
