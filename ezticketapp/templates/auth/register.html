@@ -45,6 +45,15 @@
                 >
             </div>
 
+            <div class="form-group">
+                <label for="preferred_event_type" class="form-label">Sở thích sự kiện</label>
+                <select id="preferred_event_type" name="preferred_event_type" class="form-control form-control-auth">
+                    <option value="">Chọn sở thích</option>
+                    {% for event_type in event_types %}
+                    <option value="{{ event_type.id }}">{{ event_type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
             <div class="form-group">
                 <label for="reg_password" class="form-label">Mật khẩu</label>
