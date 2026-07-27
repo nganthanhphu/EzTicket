@@ -3,7 +3,7 @@ import hashlib
 import re
 from .models import User, Event, EventType, TicketType, EventTicket
 from flask_login import current_user    
-from . import db
+from ezticketapp import db
 #tim kiem su kien
 def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=6):
     query = db.session.query(Event).join(Event.event_type, isouter=True)

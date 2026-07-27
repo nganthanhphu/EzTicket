@@ -1,14 +1,30 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    {% if current_user.is_authenticated %}
-        <div class="d-flex align-items-center mb-4">
-            <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}" class="rounded-circle" style="width:80px; height:80px; object-fit:cover; margin-right:16px;" />
-            <div>
-                <h2>Xin chào, {{ current_user.full_name }}!</h2>
-                <p>Bạn đã đăng nhập thành công. Chúc bạn một ngày trải nghiệm tốt với EzTicket.</p>
-            </div>
+<section class="homepage-shell">
+  <div class="homepage-hero">
+    <div class="hero-copy">
+      {% if current_user.is_authenticated %}
+      <h1>Xin chào, {{ current_user.full_name }}</h1>
+        {% else %}
+        <h1>Chào mừng đến với EzTicket</h1>
+      <p>Chọn sự kiện hot, theo dõi thông tin và đặt vé chỉ trong vài bước.</p>
+        {% endif %}
+    </div>
+  </div>
+
+  <section class="filter-panel {% if not request.args.get('keyword') %}hidden{% endif %}" id="filter-panel">
+    <form id="filter-form" method="get" action="{{ url_for('home') }}">
+      <input type="hidden" name="keyword" value="{{ request.args.get('keyword','') }}">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label>Loại sự kiện</label>
+          <select name="event_type">
+            <option value="">Tất cả loại</option>
+            {% for type in event_types %}
+            <option value="{{ type.id }}" {% if request.args.get('event_type','') == type.id|string %}selected{% endif %}>{{ type.name }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="filter-field">
           <label>Loại vé</label>

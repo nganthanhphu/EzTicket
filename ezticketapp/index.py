@@ -152,6 +152,9 @@ def register_auth_route(app):
         flash("Đăng nhập thành công.")
         return redirect(url_for('home'))
 
+   
+
+
 
     @app.route('/logout')
     def logout():
