@@ -2,11 +2,11 @@
 
 {% block content %}
 <div class="container">
-    {% if session.user_avatar %}
+    {% if current_user.is_authenticated %}
         <div class="d-flex align-items-center mb-4">
-            <img src="{{ session.user_avatar }}" alt="{{ session.user_full_name }}" class="rounded-circle" style="width:80px; height:80px; object-fit:cover; margin-right:16px;" />
+            <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}" class="rounded-circle" style="width:80px; height:80px; object-fit:cover; margin-right:16px;" />
             <div>
-                <h2>Xin chào, {{ session.user_full_name }}!</h2>
+                <h2>Xin chào, {{ current_user.full_name }}!</h2>
                 <p>Bạn đã đăng nhập thành công. Chúc bạn một ngày trải nghiệm tốt với EzTicket.</p>
             </div>
         </div>
