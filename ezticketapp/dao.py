@@ -16,6 +16,8 @@ from .models import (
     OrderStatus,
     Role
 )
+from sqlalchemy.exc import SQLAlchemyError
+
 
 #tim kiem su kien
 def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=6):
@@ -131,8 +133,6 @@ def is_valid_avatar(file):
         return False, "Ảnh đại diện không hợp lệ"
 
     return True, None
-
-
 
 
 def add_user(name, email,  password, avatar):
@@ -330,3 +330,132 @@ def is_pending(order_id):
         return False
 
     return order.status == OrderStatus.PENDING
+
+def load_event_tickets(keyword=None, event_id=None, page=1, per_page=10):
+    query = (
+        EventTicket.query
+        .join(Event)
+        .join(TicketType)
+    )
+
+    if keyword:
+        query = query.filter(
+            Event.name.ilike(f"%{keyword}%")
+        )
+
+    if event_id:
+        query = query.filter(
+            EventTicket.event_id == event_id
+        )
+
+    return query.order_by(
+        Event.time.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+def get_event_ticket_by_id(ticket_id):
+    return EventTicket.query.get(ticket_id)
+
+def load_events_for_select():
+    return Event.query.order_by(
+        Event.name
+    ).all()
+
+def load_ticket_types():
+    return TicketType.query.order_by(
+        TicketType.name
+    ).all()
+
+def validate_ticket(price, quantity):
+
+    if price <= 0:
+        return False, "Giá vé phải lớn hơn 0."
+
+    if quantity <= 0:
+        return False, "Số lượng phải lớn hơn 0."
+
+    return True, None
+
+def check_duplicate_ticket(event_id, ticket_type_id, ignore_id=None):
+    query = EventTicket.query.filter(
+        EventTicket.event_id == event_id,
+        EventTicket.ticket_type_id == ticket_type_id
+    )
+
+    if ignore_id:
+        query = query.filter(
+            EventTicket.id != ignore_id
+        )
+
+    return query.first() is not None
+
+def create_event_ticket(event_id, ticket_type_id, price, quantity):
+    valid, msg = validate_ticket(price, quantity)
+
+    if not valid:
+        return False, msg
+
+    if check_duplicate_ticket(event_id, ticket_type_id):
+        return False, "Loại vé này đã tồn tại."
+
+    ticket = EventTicket(event_id=event_id, ticket_type_id=ticket_type_id, price=float(price), quantity=int(quantity))
+
+    try:
+        db.session.add(ticket)
+        db.session.commit()
+
+        return True, "Tạo vé thành công."
+
+    except SQLAlchemyError:
+
+        db.session.rollback()
+
+        return False, "Không thể tạo vé."
+
+def update_event_ticket( ticket_id, event_id, ticket_type_id, price, quantity ):
+    ticket = get_event_ticket_by_id(ticket_id)
+
+    if ticket is None:
+        return False, "Không tìm thấy vé."
+
+    valid, msg = validate_ticket(price, quantity)
+
+    if not valid:
+        return False, msg
+
+    if check_duplicate_ticket( event_id, ticket_type_id, ticket.id ):
+        return False, "Loại vé đã tồn tại."
+
+    ticket.event_id = event_id
+    ticket.ticket_type_id = ticket_type_id
+    ticket.price = float(price)
+    ticket.quantity = int(quantity)
+
+    try:
+        db.session.commit()
+
+        return True, "Cập nhật thành công."
+
+    except SQLAlchemyError:
+
+        db.session.rollback()
+
+        return False, "Không thể cập nhật."
+
+def is_owner_event_ticket(ticket_id):
+
+    ticket = get_event_ticket_by_id(ticket_id)
+
+    if ticket is None:
+        return False
+
+    if not current_user.is_authenticated:
+        return False
+
+    if current_user.role != Role.ORGANIZER:
+        return False
+
+    return ticket.event.organizer_id == current_user.id

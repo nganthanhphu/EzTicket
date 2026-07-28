@@ -9,9 +9,9 @@ load_dotenv()
 
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('DATABASE_URL')
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
+app.secret_key = 'EZT34232'
+app.config["SQLALCHEMY_DATABASE_URI"] ='mysql+pymysql://root:123456@localhost/ezticketdb?charset=utf8mb4'
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PAGE_SIZE"] = 10
 
 db = SQLAlchemy(app=app)

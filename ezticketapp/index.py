@@ -14,6 +14,7 @@ from flask import (
 
 from cloudinary.uploader import upload
 from ezticketapp import app, dao
+from flask_login import login_required, login_user, logout_user
 
 from ezticketapp.decorator import (
     anonymous_required,
@@ -264,6 +265,112 @@ def register_routes(app):
 
         })
 
+    @app.route("/events/<int:event_id>/tickets")
+    # @login_required
+    def event_ticket_list(event_id):
+
+        event = dao.get_event_by_id(event_id)
+
+        if event is None:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("home"))
+
+        tickets = dao.load_event_tickets(
+            event_id=event_id
+        ).items
+
+        return render_template(
+            "ticket/manage.html",
+            event=event,
+            tickets=tickets
+        )
+
+
+    @app.route(
+        "/events/<int:event_id>/tickets/create",
+        methods=["GET", "POST"]
+    )
+    # @login_required
+    def create_ticket(event_id):
+
+        event = dao.get_event_by_id(event_id)
+
+        if event is None:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("home"))
+
+        ticket_types = dao.load_ticket_types()
+
+        if request.method == "POST":
+
+            success, msg = dao.create_event_ticket(
+                event_id=event_id,
+                ticket_type_id=int(request.form["ticket_type"]),
+                price=float(request.form["price"]),
+                quantity=int(request.form["quantity"])
+            )
+
+            flash(msg)
+
+            if success:
+                return redirect(
+                    url_for(
+                        "event_ticket_list",
+                        event_id=event_id
+                    )
+                )
+
+        return render_template(
+            "ticket/create.html",
+            event=event,
+            ticket_types=ticket_types
+        )
+
+    @app.route(
+        "/tickets/edit/<int:ticket_id>",
+        methods=["GET", "POST"]
+    )
+    # @login_required
+    def edit_ticket(ticket_id):
+
+        ticket = dao.get_event_ticket_by_id(ticket_id)
+
+        if ticket is None:
+            flash("Không tìm thấy vé.")
+            return redirect(url_for("home"))
+
+        if not dao.is_owner_event_ticket(ticket_id):
+            flash("Bạn không có quyền chỉnh sửa.")
+            return redirect(url_for("home"))
+
+        ticket_types = dao.load_ticket_types()
+
+        if request.method == "POST":
+
+            success, msg = dao.update_event_ticket(
+                ticket_id=ticket.id,
+                event_id=ticket.event_id,
+                ticket_type_id=int(request.form["ticket_type"]),
+                price=float(request.form["price"]),
+                quantity=int(request.form["quantity"])
+            )
+
+            flash(msg)
+
+            if success:
+                return redirect(
+                    url_for(
+                        "event_ticket_list",
+                        event_id=ticket.event_id
+                    )
+                )
+
+        return render_template(
+            "ticket/edit.html",
+            ticket=ticket,
+            ticket_types=ticket_types
+        )
+
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
     @anonymous_required
@@ -357,6 +464,8 @@ def register_auth_route(app):
             flash("Mật khẩu không đúng.")
             return redirect(url_for('login'))
 
+        login_user(user)
+
         avatar = getattr(user, 'avatar', None) or ''
         full_name = getattr(user, 'full_name', email)
         session['user_avatar'] = avatar
@@ -366,10 +475,13 @@ def register_auth_route(app):
         flash("Đăng nhập thành công.")
         return redirect(url_for('home'))
 
-    @app.route('/logout')
+    @app.route("/logout")
+    @login_required
     def logout():
+        logout_user()
         session.clear()
-        return redirect(url_for('home'))
+
+        return redirect(url_for("home"))
 
 @login_manager.user_loader
 def load_user(user_id):
