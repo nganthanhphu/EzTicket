@@ -11,14 +11,6 @@
     <div class="auth-form-wrapper">
         <h1 class="auth-title">Đăng nhập</h1>
 
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div class="alert alert-danger" role="alert">
-            {{ messages[0] }}
-        </div>
-        {% endif %}
-        {% endwith %}
-
         <form action="/api/login" method="POST" class="auth-form" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="email" class="form-label">Tên đăng nhập</label>

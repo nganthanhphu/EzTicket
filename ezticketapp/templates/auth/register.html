@@ -12,14 +12,6 @@
     <div class="auth-form-wrapper auth-form-wrapper-register">
         <h1 class="auth-title">Đăng ký</h1>
 
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div class="alert alert-danger" role="alert">
-            {{ messages[0] }}
-        </div>
-        {% endif %}
-        {% endwith %}
-
         <form action="/api/register" method="POST" class="auth-form" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="name" class="form-label">Họ và tên</label>
