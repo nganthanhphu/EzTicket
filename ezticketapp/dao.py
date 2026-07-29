@@ -36,19 +36,24 @@ def load_events(keyword=None, location=None, event_type_id=None, min_price=None,
             query = query.filter(EventTicket.price <= max_price)
         query = query.distinct()
 
-    if current_user.is_authenticated and current_user.role == Role.CUSTOMER:
+    is_organizer = current_user.is_authenticated and current_user.role == Role.ORGANIZER
+    is_customer = current_user.is_authenticated and current_user.role == Role.CUSTOMER
+
+    if is_customer:
         query = query.filter(Event.time >= datetime.now())
-        if current_user.customer_profile and current_user.customer_profile.preferred_event_type_id:
-            order_case = case(
-                (Event.event_type_id == current_user.customer_profile.preferred_event_type_id, 1),
-                else_=2
-            )
-            query = query.order_by(order_case, Event.time.asc())
-        else:
-            query = query.order_by(Event.time.asc())
+        query = query.filter(Event.tickets.any(EventTicket.quantity > 0))
+
+    if is_organizer:
+        query = query.filter(Event.organizer_id == current_user.id)
+
+    if is_customer and current_user.customer_profile and current_user.customer_profile.preferred_event_type_id:
+        order_case = case(
+            (Event.event_type_id == current_user.customer_profile.preferred_event_type_id, 1),
+            else_=2
+        )
+        query = query.order_by(order_case, Event.time.asc())
     else:
         query = query.order_by(Event.time.asc())
-
 
     return query.paginate(page=page, per_page=per_page, error_out=False)
 
