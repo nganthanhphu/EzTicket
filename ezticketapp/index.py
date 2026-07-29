@@ -1,10 +1,10 @@
 import cloudinary
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
-from flask_login import logout_user ,login_user
+from flask_login import logout_user, login_user, current_user, login_required
 from ezticketapp import app, dao
 from ezticketapp.decorator import anonymous_required, run_validations
 from cloudinary.uploader import upload  
-from ezticketapp.models import User
+from ezticketapp.models import User, Gender
 import hashlib
 def register_routes(app):
     @app.route("/")
@@ -58,9 +58,39 @@ def register_auth_route(app):
     @app.route("/register", methods=["GET"])
     @anonymous_required
     def register():
-        return render_template("auth/register.html")
+        event_types = dao.get_event_types()
+        genders = list(Gender)
+        return render_template("auth/register.html", event_types=event_types, genders=genders)
 
+    @app.route("/profile", methods=["GET", "POST"])
+    @login_required
+    def profile():
+        if request.method == "POST":
+            preferred_event_type_id = request.form.get("preferred_event_type")
+            gender_value = request.form.get("gender")
 
+            if preferred_event_type_id:
+                try:
+                    preferred_event_type_id = int(preferred_event_type_id)
+                except ValueError:
+                    preferred_event_type_id = None
+            else:
+                preferred_event_type_id = None
+
+            gender = None
+            if gender_value:
+                try:
+                    gender = Gender[gender_value]
+                except KeyError:
+                    gender = None
+
+            dao.update_user_profile(current_user, gender=gender, preferred_event_type_id=preferred_event_type_id)
+            flash("Cập nhật hồ sơ thành công.")
+            return redirect(url_for('profile'))
+
+        event_types = dao.get_event_types()
+        genders = list(Gender)
+        return render_template("profile.html", event_types=event_types, genders=genders)
 
 
     @app.route("/api/register", methods=["POST"])
@@ -76,6 +106,9 @@ def register_auth_route(app):
         email = get_safe("email")
         password = get_safe("password")
         confirm = get_safe("confirm")
+        role = get_safe("role")
+        gender = get_safe("gender")
+        preferred_event_type_id = request.form.get("preferred_event_type")
         avatar_file = request.files.get("avatar")
 
 
@@ -102,12 +135,23 @@ def register_auth_route(app):
             except Exception as e:
                 print(e)
 
+        if preferred_event_type_id:
+            try:
+                preferred_event_type_id = int(preferred_event_type_id)
+            except ValueError:
+                preferred_event_type_id = None
+        else:
+            preferred_event_type_id = None
+
         try:
             dao.add_user(
                 name=full_name,
                 email=email,
                 password=password,
-                avatar=avatar_url
+                avatar=avatar_url,
+                role_name=role,
+                gender_name=gender,
+                preferred_event_type_id=preferred_event_type_id,
             )
 
             flash("Đăng ký thành công. Vui lòng đăng nhập.")

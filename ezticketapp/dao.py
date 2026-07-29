@@ -1,7 +1,7 @@
 from datetime import datetime
 import hashlib
 import re
-from .models import User, Event, EventType, TicketType, EventTicket
+from .models import User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender
 from flask_login import current_user    
 from ezticketapp import db
 #tim kiem su kien
@@ -122,19 +122,57 @@ def is_valid_avatar(file):
 
 
 
-def add_user(name, email,  password, avatar):
-
+def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=None, preferred_event_type_id=None):
     valid, err_msg = is_valid_password(password)
     if not valid:
-        raise ValueError("password is valid")
+        raise ValueError(err_msg)
+
     password_hash = hashlib.md5(password.encode("utf-8")).hexdigest()
+
+    role = Role.CUSTOMER
+    if role_name == "ORGANIZER":
+        role = Role.ORGANIZER
+
     u = User(
         full_name=name,
         email=email,
         password=password_hash,
         avatar=avatar,
+        role=role,
     )
 
-    print(u)
+    if role == Role.CUSTOMER:
+        gender = None
+        if gender_name:
+            try:
+                gender = Gender[gender_name]
+            except KeyError:
+                pass
+                
+        u.customer_profile = CustomerProfile(
+            preferred_event_type_id=preferred_event_type_id,
+            gender=gender
+        )
+
     db.session.add(u)
+    db.session.commit()
+
+    return u
+
+
+
+    
+
+#tuy chinh so thich su kien cua nguoi dung
+def update_user_profile(user, gender=None, preferred_event_type_id=None):
+    if not user.customer_profile:
+        user.customer_profile = CustomerProfile(
+            gender=gender,
+            preferred_event_type_id=preferred_event_type_id,
+        )
+    else:
+        user.customer_profile.gender = gender
+        user.customer_profile.preferred_event_type_id = preferred_event_type_id
+
+    db.session.add(user)
     db.session.commit()
