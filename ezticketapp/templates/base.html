@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,50 +12,52 @@
 
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
 
-{% include 'header.html' %}
+    {% include 'header.html' %}
 
-<section class="container">
-    {% block content %}{% endblock %}
-</section>
+    <section class="container">
+        {% block content %}{% endblock %}
+    </section>
 
-{% include 'footer.html' %}
+    {% include 'footer.html' %}
 
-<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:9999"></div>
+    <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:9999"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
-{% with messages = get_flashed_messages() %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% with messages = get_flashed_messages() %}
     {% if messages %}
-        <div id="flashed-toasts" style="display:none;">
-            {% for msg in messages %}
-                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="toast-header">
-                        <strong class="me-auto">EzTicket</strong>
-                        <small class="text-muted">bây giờ</small>
-                        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                    <div class="toast-body">{{ msg }}</div>
-                </div>
-            {% endfor %}
+    <div id="flashed-toasts" style="display:none;">
+        {% for msg in messages %}
+        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">EzTicket</strong>
+                <small class="text-muted">bây giờ</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">{{ msg }}</div>
         </div>
+        {% endfor %}
+    </div>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const container = document.getElementById('toast-container');
-                const hidden = document.getElementById('flashed-toasts');
-                if (!hidden) return;
-                const toasts = hidden.querySelectorAll('.toast');
-                toasts.forEach(t => {
-                    container.appendChild(t);
-                    const bsToast = new bootstrap.Toast(t, { delay: 5000 });
-                    bsToast.show();
-                });
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('toast-container');
+            const hidden = document.getElementById('flashed-toasts');
+            if (!hidden) return;
+            const toasts = hidden.querySelectorAll('.toast');
+            toasts.forEach(t => {
+                container.appendChild(t);
+                const bsToast = new bootstrap.Toast(t, { delay: 5000 });
+                bsToast.show();
             });
-        </script>
+        });
+    </script>
     {% endif %}
-{% endwith %}
-{% block scripts %}{% endblock %}
+    {% endwith %}
+    {% block scripts %}{% endblock %}
 
 </body>
+
 </html>

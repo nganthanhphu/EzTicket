@@ -10,14 +10,17 @@
   <div class="grid-cards">
     {% for event in events.items %}
     <article class="event-card">
-      <div class="event-card-image" style="background-image: url('{{ event.image or 'https://images.unsplash.com/photo-1542223616-2b8504c23ab0?auto=format&fit=crop&w=900&q=80' }}');"></div>
+      <div class="event-card-image"
+        style="background-image: url('{{ event.image or 'https://images.unsplash.com/photo-1542223616-2b8504c23ab0?auto=format&fit=crop&w=900&q=80' }}');">
+      </div>
       <div class="event-card-body">
         <div>
           <span class="event-type">{{ event.event_type.name if event.event_type else 'Sự kiện' }}</span>
           <h3>{{ event.name }}</h3>
           <div class="event-meta">
             <span><i class="fa-solid fa-location-dot"></i> {{ event.location or 'Địa điểm chưa có' }}</span>
-            <span><i class="fa-solid fa-calendar-days"></i> {{ event.time.strftime('%d/%m/%Y') if event.time else 'Chưa xác định' }}</span>
+            <span><i class="fa-solid fa-calendar-days"></i> {{ event.time.strftime('%d/%m/%Y') if event.time else 'Chưa
+              xác định' }}</span>
           </div>
         </div>
         <div class="event-card-footer">
@@ -35,15 +38,21 @@
   <nav class="pagination-nav" aria-label="Phân trang sự kiện">
     <ul class="pagination-list">
       {% if events.has_prev %}
-      <li><a href="{{ url_for('home', page=events.prev_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}" class="page-link">«</a></li>
+      <li><a
+          href="{{ url_for('home', page=events.prev_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}"
+          class="page-link">«</a></li>
       {% endif %}
 
       {% for num in range(1, events.pages + 1) %}
-      <li class="pagination-item {% if num == events.page %}active{% endif %}"><a href="{{ url_for('home', page=num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}">{{ num }}</a></li>
+      <li class="pagination-item {% if num == events.page %}active{% endif %}"><a
+          href="{{ url_for('home', page=num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}">{{
+          num }}</a></li>
       {% endfor %}
 
       {% if events.has_next %}
-      <li><a href="{{ url_for('home', page=events.next_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}" class="page-link">»</a></li>
+      <li><a
+          href="{{ url_for('home', page=events.next_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}"
+          class="page-link">»</a></li>
       {% endif %}
     </ul>
   </nav>

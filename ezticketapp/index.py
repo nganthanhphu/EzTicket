@@ -3,9 +3,11 @@ from flask import jsonify, render_template, request, redirect, url_for, session,
 from flask_login import logout_user, login_user, current_user, login_required
 from ezticketapp import app, dao
 from ezticketapp.decorator import anonymous_required, run_validations
-from cloudinary.uploader import upload  
+from cloudinary.uploader import upload
 from ezticketapp.models import User, Gender
 import hashlib
+
+
 def register_routes(app):
     @app.route("/")
     def home():
@@ -50,11 +52,13 @@ def register_routes(app):
         )
         return render_template("_event_list.html", events=events)
 
+
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
     @anonymous_required
     def login():
         return render_template("auth/login.html")
+
     @app.route("/register", methods=["GET"])
     @anonymous_required
     def register():
@@ -84,7 +88,8 @@ def register_auth_route(app):
                 except KeyError:
                     gender = None
 
-            dao.update_user_profile(current_user, gender=gender, preferred_event_type_id=preferred_event_type_id)
+            dao.update_user_profile(
+                current_user, gender=gender, preferred_event_type_id=preferred_event_type_id)
             flash("Cập nhật hồ sơ thành công.")
             return redirect(url_for('profile'))
 
@@ -92,15 +97,12 @@ def register_auth_route(app):
         genders = list(Gender)
         return render_template("profile.html", event_types=event_types, genders=genders)
 
-
     @app.route("/api/register", methods=["POST"])
     def api_register():
         data = request.form
 
-        print(data)
         def get_safe(field):
             return (data.get(field) or "").strip()
-
 
         full_name = get_safe("name")
         email = get_safe("email")
@@ -110,7 +112,6 @@ def register_auth_route(app):
         gender = get_safe("gender")
         preferred_event_type_id = request.form.get("preferred_event_type")
         avatar_file = request.files.get("avatar")
-
 
         valid, err_msg = run_validations([
             (dao.is_valid_name, [full_name]),
@@ -196,24 +197,10 @@ def register_auth_route(app):
         flash("Đăng nhập thành công.")
         return redirect(url_for('home'))
 
-   
-
-
-
     @app.route('/logout')
     def logout():
         logout_user()
         return redirect(url_for('home'))
-
-
-
-    
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

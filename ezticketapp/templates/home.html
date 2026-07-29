@@ -6,10 +6,10 @@
     <div class="hero-copy">
       {% if current_user.is_authenticated %}
       <h1>Xin chào, {{ current_user.full_name }}</h1>
-        {% else %}
-        <h1>Chào mừng đến với EzTicket</h1>
+      {% else %}
+      <h1>Chào mừng đến với EzTicket</h1>
       <p>Chọn sự kiện hot, theo dõi thông tin và đặt vé chỉ trong vài bước.</p>
-        {% endif %}
+      {% endif %}
     </div>
   </div>
 
@@ -22,7 +22,8 @@
           <select name="event_type">
             <option value="">Tất cả loại</option>
             {% for type in event_types %}
-            <option value="{{ type.id }}" {% if request.args.get('event_type','') == type.id|string %}selected{% endif %}>{{ type.name }}</option>
+            <option value="{{ type.id }}" {% if request.args.get('event_type','')==type.id|string %}selected{% endif %}>
+              {{ type.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -31,7 +32,8 @@
           <select name="ticket_type">
             <option value="">Tất cả vé</option>
             {% for ticket in ticket_types %}
-            <option value="{{ ticket.id }}" {% if request.args.get('ticket_type','') == ticket.id|string %}selected{% endif %}>{{ ticket.name }}</option>
+            <option value="{{ ticket.id }}" {% if request.args.get('ticket_type','')==ticket.id|string %}selected{%
+              endif %}>{{ ticket.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -50,4 +52,4 @@
   <div id="event-list-target">
     {% include '_event_list.html' %}
   </div>
-{% endblock %}
+  {% endblock %}

@@ -2,9 +2,10 @@ from datetime import datetime
 import hashlib
 import re
 from .models import User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender
-from flask_login import current_user    
+from flask_login import current_user
 from ezticketapp import db
-#tim kiem su kien
+
+
 def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=6):
     query = db.session.query(Event).join(Event.event_type, isouter=True)
 
@@ -21,15 +22,16 @@ def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=
         query = query.filter(Event.event_type_id == event_type_id)
 
     if ticket_type_id:
-        query = query.join(Event.tickets).filter(EventTicket.ticket_type_id == ticket_type_id).distinct()
+        query = query.join(Event.tickets).filter(
+            EventTicket.ticket_type_id == ticket_type_id).distinct()
 
     return query.order_by(Event.time.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
-#lay the loai sk da tim kiem
+
 def get_event_types():
     return EventType.query.order_by(EventType.name).all()
 
-#lay the loai ve da tim kiem
+
 def get_ticket_types():
     return TicketType.query.order_by(TicketType.name).all()
 
@@ -41,11 +43,13 @@ def get_user_by_id(user_id):
 def get_user_by_email(email):
     return User.query.filter_by(email=email).first()
 
+
 def is_not_blank(value, field_name="Trường"):
     if not value or not value.strip():
         return False, f"{field_name} không được để trống"
     return True, None
-    
+
+
 def is_valid_length(value, min_len=0, max_len=255, field_name="Trường"):
     if len(value) < min_len:
         return False, f"{field_name} phải có ít nhất {min_len} ký tự"
@@ -75,10 +79,12 @@ def is_valid_email(email):
 
     return True, None
 
+
 def is_unique_email(email):
     if get_user_by_email(email):
         return False, "Email đã tồn tại"
     return True, None
+
 
 def is_valid_password(password):
     valid, msg = is_not_blank(password, "Mật khẩu")
@@ -105,11 +111,9 @@ def is_valid_confirm(password, confirm):
     return True, None
 
 
-
-#rang buoc anh dai dien
 def is_valid_avatar(file):
     if not file or file.filename == "":
-        return True, None  
+        return True, None
 
     allowed_ext = ["jpg", "jpeg", "png", "webp"]
     ext = file.filename.rsplit(".", 1)[-1].lower()
@@ -118,8 +122,6 @@ def is_valid_avatar(file):
         return False, "Ảnh đại diện không hợp lệ"
 
     return True, None
-
-
 
 
 def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=None, preferred_event_type_id=None):
@@ -148,7 +150,7 @@ def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=No
                 gender = Gender[gender_name]
             except KeyError:
                 pass
-                
+
         u.customer_profile = CustomerProfile(
             preferred_event_type_id=preferred_event_type_id,
             gender=gender
@@ -160,10 +162,6 @@ def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=No
     return u
 
 
-
-    
-
-#tuy chinh so thich su kien cua nguoi dung
 def update_user_profile(user, gender=None, preferred_event_type_id=None):
     if not user.customer_profile:
         user.customer_profile = CustomerProfile(
