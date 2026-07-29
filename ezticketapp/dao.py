@@ -1,7 +1,6 @@
-from datetime import datetime
 import hashlib
-from .models import User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender
-from .utils import is_not_blank, is_valid_length, is_valid_name, is_valid_email, is_valid_password, is_valid_confirm, is_valid_avatar
+from datetime import datetime
+
 from flask import current_app
 from flask_login import current_user
 from sqlalchemy import case
@@ -33,7 +32,21 @@ def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=
         query = query.join(Event.tickets).filter(
             EventTicket.ticket_type_id == ticket_type_id).distinct()
 
-    return query.order_by(Event.time.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    if current_user.is_authenticated and current_user.role == Role.CUSTOMER:
+        query = query.filter(Event.time >= datetime.now())
+        if current_user.customer_profile and current_user.customer_profile.preferred_event_type_id:
+            order_case = case(
+                (Event.event_type_id == current_user.customer_profile.preferred_event_type_id, 1),
+                else_=2
+            )
+            query = query.order_by(order_case, Event.time.asc())
+        else:
+            query = query.order_by(Event.time.asc())
+    else:
+        query = query.order_by(Event.time.asc())
+
+
+    return query.paginate(page=page, per_page=per_page, error_out=False)
 
 
 def get_event_types():
