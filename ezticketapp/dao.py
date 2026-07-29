@@ -4,7 +4,11 @@ from .models import User, CustomerProfile, Event, EventType, TicketType, EventTi
 from .utils import is_not_blank, is_valid_length, is_valid_name, is_valid_email, is_valid_password, is_valid_confirm, is_valid_avatar
 from flask import current_app
 from flask_login import current_user
+from sqlalchemy import case
+
 from ezticketapp import db
+from .models import User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender
+from .utils import is_valid_password
 
 
 def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=None):
