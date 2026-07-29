@@ -1,9 +1,38 @@
 from datetime import datetime
 import hashlib
 import re
-from ezticketapp.models import User
+from .models import User, Event, EventType, TicketType, EventTicket
 from flask_login import current_user    
 from ezticketapp import db
+#tim kiem su kien
+def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=6):
+    query = db.session.query(Event).join(Event.event_type, isouter=True)
+
+    if keyword:
+        query = query.filter(
+            Event.name.ilike(f"%{keyword}%") |
+            Event.location.ilike(f"%{keyword}%")
+        )
+
+    if location:
+        query = query.filter(Event.location.ilike(f"%{location}%"))
+
+    if event_type_id:
+        query = query.filter(Event.event_type_id == event_type_id)
+
+    if ticket_type_id:
+        query = query.join(Event.tickets).filter(EventTicket.ticket_type_id == ticket_type_id).distinct()
+
+    return query.order_by(Event.time.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+#lay the loai sk da tim kiem
+def get_event_types():
+    return EventType.query.order_by(EventType.name).all()
+
+#lay the loai ve da tim kiem
+def get_ticket_types():
+    return TicketType.query.order_by(TicketType.name).all()
+
 
 def get_user_by_id(user_id):
     return User.query.filter_by(id=user_id).first()
@@ -77,10 +106,10 @@ def is_valid_confirm(password, confirm):
 
 
 
-
+#rang buoc anh dai dien
 def is_valid_avatar(file):
     if not file or file.filename == "":
-        return True, None  # optional
+        return True, None  
 
     allowed_ext = ["jpg", "jpeg", "png", "webp"]
     ext = file.filename.rsplit(".", 1)[-1].lower()

@@ -1,5 +1,4 @@
 from enum import Enum as PyEnum
-
 from flask_login import UserMixin
 from ezticketapp import db,app
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Boolean
