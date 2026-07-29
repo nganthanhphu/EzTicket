@@ -1,7 +1,7 @@
 <header class="header">
-    <div class="logo">
-        <span class="logo-box">Ez</span> Ticket
-    </div>
+    <a class="logo text-decoration-none " href="{{ url_for('home') }}">
+        <span class="logo-box">Ez</span>Ticket
+    </a>
 
     <form id="header-search-form" class="search-bar" method="get" action="{{ url_for('home') }}">
         <input type="text" name="keyword" value="{{ request.args.get('keyword', '') }}" placeholder="Tìm kiếm sự kiện">
