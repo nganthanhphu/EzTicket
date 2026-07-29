@@ -12,7 +12,6 @@ def register_routes(app):
     @app.route("/")
     def home():
         page = request.args.get('page', 1, type=int)
-        per_page = 10
         keyword = (request.args.get('keyword') or '').strip()
         location = (request.args.get('location') or '').strip()
         event_type_id = request.args.get('event_type', type=int)
@@ -23,7 +22,6 @@ def register_routes(app):
             event_type_id=event_type_id,
             ticket_type_id=ticket_type_id,
             page=page,
-            per_page=per_page,
         )
         event_types = dao.get_event_types()
         ticket_types = dao.get_ticket_types()
