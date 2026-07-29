@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Đăng ký - EzTicket{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/auth.css') }}">
+{% endblock %}
+
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-form-wrapper auth-form-wrapper-register">
+        <h1 class="auth-title">Đăng ký</h1>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-danger" role="alert">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <form action="/api/register" method="POST" class="auth-form" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="name" class="form-label">Họ và tên</label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    class="form-control form-control-auth"
+                    placeholder="Nhập họ và tên"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    class="form-control form-control-auth"
+                    placeholder="Nhập email"
+                    required
+                >
+            </div>
+
+
+            <div class="form-group">
+                <label for="reg_password" class="form-label">Mật khẩu</label>
+                <input 
+                    type="password" 
+                    id="reg_password" 
+                    name="password" 
+                    class="form-control form-control-auth"
+                    placeholder="Nhập mật khẩu"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">Nhập lại mật khẩu</label>
+                <input 
+                    type="password" 
+                    id="confirm_password" 
+                    name="confirm" 
+                    class="form-control form-control-auth"
+                    placeholder="Nhập lại mật khẩu"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="avatar" class="form-label">Ảnh đại diện</label>
+                <input
+                    type="file"
+                    id="avatar"
+                    name="avatar"
+                    accept="image/*"
+                    class="form-control form-control-auth"
+                >
+            </div>
+
+            <button type="submit" class="btn-auth-submit">Đăng ký</button>
+        </form>
+
+        <div class="auth-switch">
+            <p>Đã có tài khoản? <a href="{{ url_for('login') }}" class="auth-switch-link">Đăng nhập ngay</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
