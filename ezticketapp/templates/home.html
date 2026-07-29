@@ -13,7 +13,7 @@
     </div>
   </div>
 
-  <section class="filter-panel {% if not request.args.get('keyword') %}hidden{% endif %}" id="filter-panel">
+  <section class="filter-panel" id="filter-panel">
     <form id="filter-form" method="get" action="{{ url_for('home') }}">
       <input type="hidden" name="keyword" value="{{ request.args.get('keyword','') }}">
       <div class="filter-row">
