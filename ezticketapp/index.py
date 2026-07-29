@@ -34,24 +34,6 @@ def register_routes(app):
             ticket_types=ticket_types,
         )
 
-    @app.route('/events-partial')
-    def events_partial():
-        page = request.args.get('page', 1, type=int)
-        per_page = 10
-        keyword = (request.args.get('keyword') or '').strip()
-        location = (request.args.get('location') or '').strip()
-        event_type_id = request.args.get('event_type', type=int)
-        ticket_type_id = request.args.get('ticket_type', type=int)
-        events = dao.load_events(
-            keyword=keyword,
-            location=location,
-            event_type_id=event_type_id,
-            ticket_type_id=ticket_type_id,
-            page=page,
-            per_page=per_page,
-        )
-        return render_template("_event_list.html", events=events)
-
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
