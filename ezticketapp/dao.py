@@ -54,7 +54,7 @@ def is_unique_email(email):
     return True, None
 
 
-def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=None, preferred_event_type_id=None):
+def add_user(name, email, password, avatar=None, role_name="CUSTOMER", gender_name=None, preferred_event_type_id=None):
     valid, err_msg = is_valid_password(password)
     if not valid:
         raise ValueError(err_msg)
@@ -69,9 +69,10 @@ def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=No
         full_name=name,
         email=email,
         password=password_hash,
-        avatar=avatar,
         role=role,
     )
+    if avatar:
+        u.avatar = avatar
 
     if role == Role.CUSTOMER:
         gender = None

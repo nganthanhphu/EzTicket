@@ -105,14 +105,11 @@ def register_auth_route(app):
             flash(err_msg)
             return redirect(url_for('register'))
 
-        DEFAULT_AVATAR = "https://res.cloudinary.com/dpxsbyyey/image/upload/v1775650754/avatar_user_nzinrm.webp"
-
-        avatar_url = DEFAULT_AVATAR
-
+        avatar_url = None
         if avatar_file and avatar_file.filename != "":
             try:
                 res = cloudinary.uploader.upload(avatar_file)
-                avatar_url = res.get("secure_url", DEFAULT_AVATAR)
+                avatar_url = res.get("secure_url")
             except Exception as e:
                 print(e)
 
