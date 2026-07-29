@@ -59,7 +59,8 @@ def register_auth_route(app):
     @anonymous_required
     def register():
         event_types = dao.get_event_types()
-        return render_template("auth/register.html", event_types=event_types)
+        genders = list(Gender)
+        return render_template("auth/register.html", event_types=event_types, genders=genders)
 
     @app.route("/profile", methods=["GET", "POST"])
     @login_required
@@ -105,6 +106,8 @@ def register_auth_route(app):
         email = get_safe("email")
         password = get_safe("password")
         confirm = get_safe("confirm")
+        role = get_safe("role")
+        gender = get_safe("gender")
         preferred_event_type_id = request.form.get("preferred_event_type")
         avatar_file = request.files.get("avatar")
 
@@ -146,6 +149,8 @@ def register_auth_route(app):
                 email=email,
                 password=password,
                 avatar=avatar_url,
+                role_name=role,
+                gender_name=gender,
                 preferred_event_type_id=preferred_event_type_id,
             )
 
