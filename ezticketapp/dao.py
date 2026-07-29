@@ -10,7 +10,7 @@ from .models import User, CustomerProfile, Event, EventType, TicketType, EventTi
 from .utils import is_valid_password
 
 
-def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=None):
+def load_events(keyword=None, location=None, event_type_id=None, min_price=None, max_price=None, page=1, per_page=None):
     if per_page is None:
         per_page = current_app.config.get("PAGE_SIZE", 6)
 
@@ -28,9 +28,13 @@ def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=
     if event_type_id:
         query = query.filter(Event.event_type_id == event_type_id)
 
-    if ticket_type_id:
-        query = query.join(Event.tickets).filter(
-            EventTicket.ticket_type_id == ticket_type_id).distinct()
+    if min_price is not None or max_price is not None:
+        query = query.join(Event.tickets)
+        if min_price is not None:
+            query = query.filter(EventTicket.price >= min_price)
+        if max_price is not None:
+            query = query.filter(EventTicket.price <= max_price)
+        query = query.distinct()
 
     if current_user.is_authenticated and current_user.role == Role.CUSTOMER:
         query = query.filter(Event.time >= datetime.now())

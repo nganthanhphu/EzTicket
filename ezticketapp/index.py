@@ -15,21 +15,21 @@ def register_routes(app):
         keyword = (request.args.get('keyword') or '').strip()
         location = (request.args.get('location') or '').strip()
         event_type_id = request.args.get('event_type', type=int)
-        ticket_type_id = request.args.get('ticket_type', type=int)
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
         events = dao.load_events(
             keyword=keyword,
             location=location,
             event_type_id=event_type_id,
-            ticket_type_id=ticket_type_id,
+            min_price=min_price,
+            max_price=max_price,
             page=page,
         )
         event_types = dao.get_event_types()
-        ticket_types = dao.get_ticket_types()
         return render_template(
             "home.html",
             events=events,
             event_types=event_types,
-            ticket_types=ticket_types,
         )
 
 

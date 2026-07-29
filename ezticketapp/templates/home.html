@@ -28,14 +28,14 @@
           </select>
         </div>
         <div class="filter-field">
-          <label>Loại vé</label>
-          <select name="ticket_type">
-            <option value="">Tất cả vé</option>
-            {% for ticket in ticket_types %}
-            <option value="{{ ticket.id }}" {% if request.args.get('ticket_type','')==ticket.id|string %}selected{%
-              endif %}>{{ ticket.name }}</option>
-            {% endfor %}
-          </select>
+          <label>Giá tối thiểu</label>
+          <input type="number" name="min_price" value="{{ request.args.get('min_price','') }}" placeholder="đ" min="0"
+            step="1000">
+        </div>
+        <div class="filter-field">
+          <label>Giá tối đa</label>
+          <input type="number" name="max_price" value="{{ request.args.get('max_price','') }}" placeholder="đ" min="0"
+            step="1000">
         </div>
         <div class="filter-field">
           <label>Địa điểm</label>
@@ -61,7 +61,7 @@
       {% for event in events.items %}
       <article class="event-card">
         <div class="event-card-image"
-          style="background-image: url('{{ event.image or 'https://images.unsplash.com/photo-1542223616-2b8504c23ab0?auto=format&fit=crop&w=900&q=80' }}');">
+          style="background-image: url('{{ event.image }}');">
         </div>
         <div class="event-card-body">
           <div>
@@ -89,19 +89,19 @@
       <ul class="pagination-list">
         {% if events.has_prev %}
         <li><a
-            href="{{ url_for('home', page=events.prev_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}"
+            href="{{ url_for('home', page=events.prev_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), min_price=request.args.get('min_price',''), max_price=request.args.get('max_price',''), location=request.args.get('location','')) }}"
             class="page-link">«</a></li>
         {% endif %}
 
         {% for num in range(1, events.pages + 1) %}
         <li class="pagination-item {% if num == events.page %}active{% endif %}"><a
-            href="{{ url_for('home', page=num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}">{{
+            href="{{ url_for('home', page=num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), min_price=request.args.get('min_price',''), max_price=request.args.get('max_price',''), location=request.args.get('location','')) }}">{{
             num }}</a></li>
         {% endfor %}
 
         {% if events.has_next %}
         <li><a
-            href="{{ url_for('home', page=events.next_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), ticket_type=request.args.get('ticket_type',''), location=request.args.get('location','')) }}"
+            href="{{ url_for('home', page=events.next_num, keyword=request.args.get('keyword',''), event_type=request.args.get('event_type',''), min_price=request.args.get('min_price',''), max_price=request.args.get('max_price',''), location=request.args.get('location','')) }}"
             class="page-link">»</a></li>
         {% endif %}
       </ul>

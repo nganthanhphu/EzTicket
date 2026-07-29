@@ -380,24 +380,18 @@ footer .container {
 }
 
 .filter-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  gap: 16px;
-  align-items: end;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
 }
 
 .filter-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.filter-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 150px;
 }
 
 .filter-field label {
@@ -410,9 +404,9 @@ footer .container {
 .filter-field select {
   border: 1px solid rgba(15, 23, 42, 0.16);
   border-radius: 18px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   outline: none;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   background: #ffffff;
   color: #0f172a;
   appearance: none;
@@ -430,15 +424,16 @@ footer .container {
 
 .filter-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .clear-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 18px;
+  padding: 10px 16px;
   border: 1px solid rgba(0, 104, 255, 0.18);
   border-radius: 999px;
   color: var(--primary-dark);
