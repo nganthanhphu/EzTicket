@@ -4,69 +4,69 @@
 
 {% block content %}
 <div class="container py-5">
-    <div class="card p-4 shadow-sm">
-        <div class="d-flex align-items-center gap-3 mb-4">
-            <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}" class="rounded-circle"
-                style="width:120px; height:120px; object-fit:cover;" />
-            <div>
-                <h2>{{ current_user.full_name }}</h2>
-                <p class="text-muted mb-0">{{ current_user.email }}</p>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-md-4 mb-3">
-                <strong>Vai trò:</strong>
-                <div>{{ current_user.role.value.title() if current_user.role else 'Khách' }}</div>
-            </div>
-            {% if current_user.role.name == 'CUSTOMER' %}
-            <div class="col-md-4 mb-3">
-                <strong>Giới tính hiện tại:</strong>
-                <div>{{ current_user.customer_profile.gender.value.title() if current_user.customer_profile and
-                    current_user.customer_profile.gender else 'Chưa chọn' }}</div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <strong>Sở thích hiện tại:</strong>
-                <div>{{ current_user.customer_profile.preferred_event_type.name if current_user.customer_profile and
-                    current_user.customer_profile.preferred_event_type else 'Chưa chọn' }}</div>
-            </div>
-            {% endif %}
-        </div>
-
-        {% if current_user.role.name == 'CUSTOMER' %}
-        <form method="post" action="{{ url_for('profile') }}" class="mb-4">
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label for="gender" class="form-label">Giới tính</label>
-                    <select id="gender" name="gender" class="form-select">
-                        <option value="">Không chọn</option>
-                        {% for gender in genders %}
-                        <option value="{{ gender.name }}" {% if current_user.customer_profile and
-                            current_user.customer_profile.gender==gender %}selected{% endif %}>{{ gender.value.title()
-                            }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label for="preferred_event_type" class="form-label">Thay đổi sở thích sự kiện</label>
-                    <select id="preferred_event_type" name="preferred_event_type" class="form-select">
-                        <option value="">Không chọn</option>
-                        {% for event_type in event_types %}
-                        <option value="{{ event_type.id }}" {% if current_user.customer_profile and
-                            current_user.customer_profile.preferred_event_type_id==event_type.id %}selected{% endif %}>
-                            {{ event_type.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
-        </form>
-        {% endif %}
-
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('home') }}" class="btn btn-primary">Về trang chủ</a>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">Đăng xuất</a>
-        </div>
+  <div class="card p-4 shadow-sm">
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}" class="rounded-circle"
+        style="width:120px; height:120px; object-fit:cover;" />
+      <div>
+        <h2>{{ current_user.full_name }}</h2>
+        <p class="text-muted mb-0">{{ current_user.email }}</p>
+      </div>
     </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4 mb-3">
+        <strong>Vai trò:</strong>
+        <div>{{ current_user.role.value.title() if current_user.role else 'Khách' }}</div>
+      </div>
+      {% if current_user.role.name == 'CUSTOMER' %}
+      <div class="col-md-4 mb-3">
+        <strong>Giới tính hiện tại:</strong>
+        <div>{{ current_user.customer_profile.gender.value.title() if current_user.customer_profile and
+          current_user.customer_profile.gender else 'Chưa chọn' }}</div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <strong>Sở thích hiện tại:</strong>
+        <div>{{ current_user.customer_profile.preferred_event_type.name if current_user.customer_profile and
+          current_user.customer_profile.preferred_event_type else 'Chưa chọn' }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if current_user.role.name == 'CUSTOMER' %}
+    <form method="post" action="{{ url_for('profile') }}" class="mb-4">
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label for="gender" class="form-label">Giới tính</label>
+          <select id="gender" name="gender" class="form-select">
+            <option value="">Không chọn</option>
+            {% for gender in genders %}
+            <option value="{{ gender.name }}" {% if current_user.customer_profile and
+              current_user.customer_profile.gender==gender %}selected{% endif %}>{{ gender.value.title()
+              }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="preferred_event_type" class="form-label">Thay đổi sở thích sự kiện</label>
+          <select id="preferred_event_type" name="preferred_event_type" class="form-select">
+            <option value="">Không chọn</option>
+            {% for event_type in event_types %}
+            <option value="{{ event_type.id }}" {% if current_user.customer_profile and
+              current_user.customer_profile.preferred_event_type_id==event_type.id %}selected{% endif %}>
+              {{ event_type.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+    </form>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('home') }}" class="btn btn-primary">Về trang chủ</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">Đăng xuất</a>
+    </div>
+  </div>
 </div>
 {% endblock %}
