@@ -2,56 +2,52 @@
 
 {% block content %}
 <section class="homepage-shell">
-    <div class="homepage-hero">
-        <div class="hero-copy">
-            {% if current_user.is_authenticated %}
-            <h1>Xin chào, {{ current_user.full_name }}</h1>
-            {% else %}
-            <h1>Chào mừng đến với EzTicket</h1>
-            <p>Chọn sự kiện hot, theo dõi thông tin và đặt vé chỉ trong vài bước.</p>
-            {% endif %}
-        </div>
+  <div class="homepage-hero">
+    <div class="hero-copy">
+      {% if current_user.is_authenticated %}
+      <h1>Xin chào, {{ current_user.full_name }}</h1>
+      {% else %}
+      <h1>Chào mừng đến với EzTicket</h1>
+      <p>Chọn sự kiện hot, theo dõi thông tin và đặt vé chỉ trong vài bước.</p>
+      {% endif %}
     </div>
+  </div>
 
-    <section class="filter-panel" id="filter-panel">
-        <form id="filter-form" method="get" action="{{ url_for('home') }}">
-            <input type="hidden" name="keyword" value="{{ request.args.get('keyword','') }}">
-            <div class="filter-row">
-                <div class="filter-field">
-                    <label>Loại sự kiện</label>
-                    <select name="event_type">
-                        <option value="">Tất cả loại</option>
-                        {% for type in event_types %}
-                        <option value="{{ type.id }}" {% if request.args.get(
-                        'event_type','')==type.id|string %}selected{% endif %}>
-                        {{ type.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-field">
-                    <label>Giá tối thiểu</label>
-                    <input type="number" name="min_price" value="{{ request.args.get('min_price','') }}" placeholder="đ"
-                           min="0"
-                           step="1000">
-                </div>
-                <div class="filter-field">
-                    <label>Giá tối đa</label>
-                    <input type="number" name="max_price" value="{{ request.args.get('max_price','') }}" placeholder="đ"
-                           min="0"
-                           step="1000">
-                </div>
-                <div class="filter-field">
-                    <label>Địa điểm</label>
-                    <input type="text" name="location" value="{{ request.args.get('location','') }}"
-                           placeholder="Nhập địa điểm">
-                </div>
-                <div class="filter-field filter-actions">
-                    <button type="submit" class="button-secondary">Áp dụng bộ lọc</button>
-                    <a href="{{ url_for('home') }}" class="button-secondary clear-button">Xóa bộ lọc</a>
-                </div>
-            </div>
-        </form>
-    </section>
+  <section class="filter-panel" id="filter-panel">
+    <form id="filter-form" method="get" action="{{ url_for('home') }}">
+      <input type="hidden" name="keyword" value="{{ request.args.get('keyword','') }}">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label>Loại sự kiện</label>
+          <select name="event_type">
+            <option value="">Tất cả loại</option>
+            {% for type in event_types %}
+            <option value="{{ type.id }}" {% if request.args.get('event_type','')==type.id|string %}selected{% endif %}>
+              {{ type.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Giá tối thiểu</label>
+          <input type="number" name="min_price" value="{{ request.args.get('min_price','') }}" placeholder="đ" min="0"
+            step="1000">
+        </div>
+        <div class="filter-field">
+          <label>Giá tối đa</label>
+          <input type="number" name="max_price" value="{{ request.args.get('max_price','') }}" placeholder="đ" min="0"
+            step="1000">
+        </div>
+        <div class="filter-field">
+          <label>Địa điểm</label>
+          <input type="text" name="location" value="{{ request.args.get('location','') }}" placeholder="Nhập địa điểm">
+        </div>
+        <div class="filter-field filter-actions">
+          <button type="submit" class="button-secondary">Áp dụng bộ lọc</button>
+          <a href="{{ url_for('home') }}" class="button-secondary clear-button">Xóa bộ lọc</a>
+        </div>
+      </div>
+    </form>
+  </section>
 
     <div class="cards-section" id="cards-section">
         <div class="section-header">
