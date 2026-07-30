@@ -3,58 +3,42 @@ from flask import jsonify, render_template, request, redirect, url_for, session,
 from flask_login import logout_user, login_user, current_user, login_required
 from ezticketapp import app, dao
 from ezticketapp.decorator import anonymous_required, run_validations
-from cloudinary.uploader import upload  
+from cloudinary.uploader import upload
 from ezticketapp.models import User, Gender
 import hashlib
+
+
 def register_routes(app):
     @app.route("/")
     def home():
         page = request.args.get('page', 1, type=int)
-        per_page = 10
         keyword = (request.args.get('keyword') or '').strip()
         location = (request.args.get('location') or '').strip()
         event_type_id = request.args.get('event_type', type=int)
-        ticket_type_id = request.args.get('ticket_type', type=int)
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
         events = dao.load_events(
             keyword=keyword,
             location=location,
             event_type_id=event_type_id,
-            ticket_type_id=ticket_type_id,
+            min_price=min_price,
+            max_price=max_price,
             page=page,
-            per_page=per_page,
         )
         event_types = dao.get_event_types()
-        ticket_types = dao.get_ticket_types()
         return render_template(
             "home.html",
             events=events,
             event_types=event_types,
-            ticket_types=ticket_types,
         )
 
-    @app.route('/events-partial')
-    def events_partial():
-        page = request.args.get('page', 1, type=int)
-        per_page = 10
-        keyword = (request.args.get('keyword') or '').strip()
-        location = (request.args.get('location') or '').strip()
-        event_type_id = request.args.get('event_type', type=int)
-        ticket_type_id = request.args.get('ticket_type', type=int)
-        events = dao.load_events(
-            keyword=keyword,
-            location=location,
-            event_type_id=event_type_id,
-            ticket_type_id=ticket_type_id,
-            page=page,
-            per_page=per_page,
-        )
-        return render_template("_event_list.html", events=events)
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
     @anonymous_required
     def login():
         return render_template("auth/login.html")
+
     @app.route("/register", methods=["GET"])
     @anonymous_required
     def register():
@@ -84,7 +68,8 @@ def register_auth_route(app):
                 except KeyError:
                     gender = None
 
-            dao.update_user_profile(current_user, gender=gender, preferred_event_type_id=preferred_event_type_id)
+            dao.update_user_profile(
+                current_user, gender=gender, preferred_event_type_id=preferred_event_type_id)
             flash("Cập nhật hồ sơ thành công.")
             return redirect(url_for('profile'))
 
@@ -92,15 +77,12 @@ def register_auth_route(app):
         genders = list(Gender)
         return render_template("profile.html", event_types=event_types, genders=genders)
 
-
     @app.route("/api/register", methods=["POST"])
     def api_register():
         data = request.form
 
-        print(data)
         def get_safe(field):
             return (data.get(field) or "").strip()
-
 
         full_name = get_safe("name")
         email = get_safe("email")
@@ -110,7 +92,6 @@ def register_auth_route(app):
         gender = get_safe("gender")
         preferred_event_type_id = request.form.get("preferred_event_type")
         avatar_file = request.files.get("avatar")
-
 
         valid, err_msg = run_validations([
             (dao.is_valid_name, [full_name]),
@@ -124,14 +105,11 @@ def register_auth_route(app):
             flash(err_msg)
             return redirect(url_for('register'))
 
-        DEFAULT_AVATAR = "https://res.cloudinary.com/dpxsbyyey/image/upload/v1775650754/avatar_user_nzinrm.webp"
-
-        avatar_url = DEFAULT_AVATAR
-
+        avatar_url = None
         if avatar_file and avatar_file.filename != "":
             try:
                 res = cloudinary.uploader.upload(avatar_file)
-                avatar_url = res.get("secure_url", DEFAULT_AVATAR)
+                avatar_url = res.get("secure_url")
             except Exception as e:
                 print(e)
 
@@ -196,24 +174,10 @@ def register_auth_route(app):
         flash("Đăng nhập thành công.")
         return redirect(url_for('home'))
 
-   
-
-
-
     @app.route('/logout')
     def logout():
         logout_user()
         return redirect(url_for('home'))
-
-
-
-    
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

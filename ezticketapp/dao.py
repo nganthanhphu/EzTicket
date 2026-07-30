@@ -1,11 +1,19 @@
-from datetime import datetime
 import hashlib
-import re
-from .models import User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender
-from flask_login import current_user    
+from datetime import datetime
+
+from flask import current_app
+from flask_login import current_user
+from sqlalchemy import case
+
 from ezticketapp import db
-#tim kiem su kien
-def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=None, page=1, per_page=6):
+from .models import User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender
+from .utils import is_valid_password
+
+
+def load_events(keyword=None, location=None, event_type_id=None, min_price=None, max_price=None, page=1, per_page=None):
+    if per_page is None:
+        per_page = current_app.config.get("PAGE_SIZE", 6)
+
     query = db.session.query(Event).join(Event.event_type, isouter=True)
 
     if keyword:
@@ -20,16 +28,40 @@ def load_events(keyword=None, location=None, event_type_id=None, ticket_type_id=
     if event_type_id:
         query = query.filter(Event.event_type_id == event_type_id)
 
-    if ticket_type_id:
-        query = query.join(Event.tickets).filter(EventTicket.ticket_type_id == ticket_type_id).distinct()
+    if min_price is not None or max_price is not None:
+        query = query.join(Event.tickets)
+        if min_price is not None:
+            query = query.filter(EventTicket.price >= min_price)
+        if max_price is not None:
+            query = query.filter(EventTicket.price <= max_price)
+        query = query.distinct()
 
-    return query.order_by(Event.time.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    is_organizer = current_user.is_authenticated and current_user.role == Role.ORGANIZER
+    is_customer = current_user.is_authenticated and current_user.role == Role.CUSTOMER
 
-#lay the loai sk da tim kiem
+    if is_customer:
+        query = query.filter(Event.time >= datetime.now())
+        query = query.filter(Event.tickets.any(EventTicket.quantity > 0))
+
+    if is_organizer:
+        query = query.filter(Event.organizer_id == current_user.id)
+
+    if is_customer and current_user.customer_profile and current_user.customer_profile.preferred_event_type_id:
+        order_case = case(
+            (Event.event_type_id == current_user.customer_profile.preferred_event_type_id, 1),
+            else_=2
+        )
+        query = query.order_by(order_case, Event.time.asc())
+    else:
+        query = query.order_by(Event.time.asc())
+
+    return query.paginate(page=page, per_page=per_page, error_out=False)
+
+
 def get_event_types():
     return EventType.query.order_by(EventType.name).all()
 
-#lay the loai ve da tim kiem
+
 def get_ticket_types():
     return TicketType.query.order_by(TicketType.name).all()
 
@@ -41,88 +73,14 @@ def get_user_by_id(user_id):
 def get_user_by_email(email):
     return User.query.filter_by(email=email).first()
 
-def is_not_blank(value, field_name="Trường"):
-    if not value or not value.strip():
-        return False, f"{field_name} không được để trống"
-    return True, None
-    
-def is_valid_length(value, min_len=0, max_len=255, field_name="Trường"):
-    if len(value) < min_len:
-        return False, f"{field_name} phải có ít nhất {min_len} ký tự"
-    if len(value) > max_len:
-        return False, f"{field_name} không được vượt quá {max_len} ký tự"
-    return True, None
-
-
-def is_valid_name(name):
-    valid, msg = is_not_blank(name, "Tên")
-    if not valid:
-        return False, msg
-
-    if not re.fullmatch(r"^[A-Za-zÀ-ỹ\s]+$", name):
-        return False, "Tên chỉ được chứa chữ cái và khoảng trắng"
-
-    return is_valid_length(name, 1, 50, "Tên")
-
-
-def is_valid_email(email):
-    if not email:
-        return False, "Email không được để trống"
-
-    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-    if not re.match(pattern, email):
-        return False, "Email không hợp lệ"
-
-    return True, None
 
 def is_unique_email(email):
     if get_user_by_email(email):
         return False, "Email đã tồn tại"
     return True, None
 
-def is_valid_password(password):
-    valid, msg = is_not_blank(password, "Mật khẩu")
-    if not valid:
-        return False, msg
 
-    if len(password) < 8:
-        return False, "Mật khẩu phải ít nhất 8 ký tự"
-    if not re.search(r"[A-Z]", password):
-        return False, "Mật khẩu phải có chữ hoa"
-    if not re.search(r"[a-z]", password):
-        return False, "Mật khẩu phải có chữ thường"
-    if not re.search(r"[0-9]", password):
-        return False, "Mật khẩu phải có số"
-    if not re.search(r"[!@#$%^&*]", password):
-        return False, "Mật khẩu phải có ký tự đặc biệt"
-
-    return True, None
-
-
-def is_valid_confirm(password, confirm):
-    if password != confirm:
-        return False, "Mật khẩu xác nhận không khớp."
-    return True, None
-
-
-
-#rang buoc anh dai dien
-def is_valid_avatar(file):
-    if not file or file.filename == "":
-        return True, None  
-
-    allowed_ext = ["jpg", "jpeg", "png", "webp"]
-    ext = file.filename.rsplit(".", 1)[-1].lower()
-
-    if ext not in allowed_ext:
-        return False, "Ảnh đại diện không hợp lệ"
-
-    return True, None
-
-
-
-
-def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=None, preferred_event_type_id=None):
+def add_user(name, email, password, avatar=None, role_name="CUSTOMER", gender_name=None, preferred_event_type_id=None):
     valid, err_msg = is_valid_password(password)
     if not valid:
         raise ValueError(err_msg)
@@ -137,9 +95,10 @@ def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=No
         full_name=name,
         email=email,
         password=password_hash,
-        avatar=avatar,
         role=role,
     )
+    if avatar:
+        u.avatar = avatar
 
     if role == Role.CUSTOMER:
         gender = None
@@ -148,7 +107,7 @@ def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=No
                 gender = Gender[gender_name]
             except KeyError:
                 pass
-                
+
         u.customer_profile = CustomerProfile(
             preferred_event_type_id=preferred_event_type_id,
             gender=gender
@@ -160,10 +119,6 @@ def add_user(name, email, password, avatar, role_name="CUSTOMER", gender_name=No
     return u
 
 
-
-    
-
-#tuy chinh so thich su kien cua nguoi dung
 def update_user_profile(user, gender=None, preferred_event_type_id=None):
     if not user.customer_profile:
         user.customer_profile = CustomerProfile(

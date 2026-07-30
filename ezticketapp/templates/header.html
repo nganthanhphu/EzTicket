@@ -1,14 +1,13 @@
-
-
 <header class="header">
-    <div class="logo">
-        <span class="logo-box">Ez</span> Ticket
-    </div>
+    <a class="logo text-decoration-none " href="{{ url_for('home') }}">
+        <span class="logo-box">Ez</span>Ticket
+    </a>
 
     <form id="header-search-form" class="search-bar" method="get" action="{{ url_for('home') }}">
-        <input type="text" name="keyword" value="{{ request.args.get('keyword', '') }}" placeholder="nhập sự kiện bạn muốn">
+        <input type="text" name="keyword" value="{{ request.args.get('keyword', '') }}" placeholder="Tìm kiếm sự kiện">
         <input type="hidden" name="event_type" value="{{ request.args.get('event_type', '') }}">
-        <input type="hidden" name="ticket_type" value="{{ request.args.get('ticket_type', '') }}">
+        <input type="hidden" name="min_price" value="{{ request.args.get('min_price', '') }}">
+        <input type="hidden" name="max_price" value="{{ request.args.get('max_price', '') }}">
         <input type="hidden" name="location" value="{{ request.args.get('location', '') }}">
         <button type="submit" class="search-submit" aria-label="Tìm kiếm">
             <i class="fa-solid fa-magnifying-glass"></i>
@@ -16,26 +15,29 @@
     </form>
 
     <div class="user-actions">
+        {% if current_user.is_authenticated and current_user.role.name == "CUSTOMER" %}
         <div class="action-item">
             <div class="icon-circle white-bg">
                 <i class="fa-solid fa-ticket ticket-icon"></i>
             </div>
             <span class="action-text">Vé của tôi</span>
         </div>
+        {% endif %}
         <div class="action-item">
             {% if current_user.is_authenticated %}
-                <a href="{{ url_for('profile') }}" class="avatar-link">
-                    <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}" class="rounded-circle" style="width:40px; height:40px; object-fit:cover;" />
-                </a>
-                <span id="header-username" class="action-text">{{ current_user.full_name }}</span>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light text-white ms-2">Đăng xuất</a>
+            <a href="{{ url_for('profile') }}" class="avatar-link">
+                <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}" class="rounded-circle"
+                    style="width:40px; height:40px; object-fit:cover;" />
+            </a>
+            <span id="header-username" class="action-text">{{ current_user.full_name }}</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light text-white ms-2">Đăng xuất</a>
             {% else %}
-                <a href="{{ url_for('login') }}" class="avatar-link">
-                    <div id="header-avatar" class="icon-circle purple-bg">
-                        <i class="fa-regular fa-user user-icon"></i>
-                    </div>
-                </a>
-                <span id="header-username" class="action-text">Login</span>
+            <a href="{{ url_for('login') }}" class="avatar-link">
+                <div id="header-avatar" class="icon-circle purple-bg">
+                    <i class="fa-regular fa-user user-icon"></i>
+                </div>
+            </a>
+            <span id="header-username" class="action-text">Đăng nhập</span>
             {% endif %}
         </div>
     </div>
