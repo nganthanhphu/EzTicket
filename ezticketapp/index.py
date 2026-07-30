@@ -1,78 +1,42 @@
-import hashlib
 import cloudinary
-from ezticketapp import login_manager
-
-from flask import (
-    jsonify,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    session,
-    flash
-)
-
-from cloudinary.uploader import upload
+from flask import jsonify, render_template, request, redirect, url_for, session, flash
+from flask_login import logout_user, login_user, current_user, login_required
 from ezticketapp import app, dao
+from ezticketapp.decorator import anonymous_required, run_validations
+from cloudinary.uploader import upload
+from ezticketapp.models import User, Gender
+import hashlib
 
-from ezticketapp.decorator import (
-    anonymous_required,
-    run_validations,
-)
-
-from ezticketapp.models import (
-    User
-)
 
 def register_routes(app):
     @app.route("/")
     def home():
         page = request.args.get('page', 1, type=int)
-        per_page = 10
         keyword = (request.args.get('keyword') or '').strip()
         location = (request.args.get('location') or '').strip()
         event_type_id = request.args.get('event_type', type=int)
-        ticket_type_id = request.args.get('ticket_type', type=int)
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
         events = dao.load_events(
             keyword=keyword,
             location=location,
             event_type_id=event_type_id,
-            ticket_type_id=ticket_type_id,
+            min_price=min_price,
+            max_price=max_price,
             page=page,
-            per_page=per_page,
         )
         event_types = dao.get_event_types()
-        ticket_types = dao.get_ticket_types()
         return render_template(
             "home.html",
             events=events,
             event_types=event_types,
-            ticket_types=ticket_types,
         )
-
-    @app.route('/events-partial')
-    def events_partial():
-        page = request.args.get('page', 1, type=int)
-        per_page = 10
-        keyword = (request.args.get('keyword') or '').strip()
-        location = (request.args.get('location') or '').strip()
-        event_type_id = request.args.get('event_type', type=int)
-        ticket_type_id = request.args.get('ticket_type', type=int)
-        events = dao.load_events(
-            keyword=keyword,
-            location=location,
-            event_type_id=event_type_id,
-            ticket_type_id=ticket_type_id,
-            page=page,
-            per_page=per_page,
-        )
-        return render_template("_event_list.html", events=events)
 
     @app.route("/events/<int:event_id>")
     def event_detail(event_id):
         event = dao.get_event_by_id(event_id)
 
-        if event is None:
+        if not event:
             flash("Không tìm thấy sự kiện.")
             return redirect(url_for("home"))
 
@@ -81,188 +45,6 @@ def register_routes(app):
             event=event
         )
 
-    @app.route("/tickets")
-    def ticket_list():
-        page = request.args.get("page", 1, type=int)
-
-        keyword = (
-                request.args.get("keyword") or ""
-        ).strip()
-
-        status = request.args.get("status")
-
-        tickets = dao.load_orders(
-            page=page,
-            keyword=keyword,
-            status=status,
-            per_page=10
-        )
-
-        stats = dao.ticket_statistics()
-
-        return render_template(
-            "ticket/list.html",
-            tickets=tickets,
-            stats=stats,
-            keyword=keyword,
-            status=status
-        )
-
-    @app.route("/tickets/<int:order_id>")
-    def ticket_detail(order_id):
-        order = dao.get_order_detail(order_id)
-
-        if order is None:
-            flash("Không tìm thấy vé.")
-            return redirect(url_for("ticket_list"))
-
-        return render_template(
-            "ticket/detail.html",
-            order=order
-        )
-
-    @app.route("/tickets/pending")
-    def pending_ticket():
-        page = request.args.get(
-            "page",
-            1,
-            type=int
-        )
-
-        keyword = (
-                request.args.get("keyword") or ""
-        ).strip()
-
-        tickets = dao.load_pending_orders(
-            page=page,
-            keyword=keyword
-        )
-
-        stats = dao.ticket_statistics()
-
-        return render_template(
-            "ticket/list.html",
-            tickets=tickets,
-            stats=stats,
-            keyword=keyword,
-            status="PENDING"
-        )
-
-    @app.route(
-        "/tickets/<int:order_id>/approve",
-        methods=["POST"]
-    )
-    def approve_ticket(order_id):
-        success, msg = dao.approve_order(order_id)
-
-        flash(msg)
-
-        return redirect(
-            url_for(
-                "ticket_detail",
-                order_id=order_id
-            )
-        )
-
-    @app.route(
-        "/tickets/<int:order_id>/cancel",
-        methods=["POST"]
-    )
-    def cancel_ticket(order_id):
-        success, msg = dao.cancel_order(order_id)
-
-        flash(msg)
-
-        return redirect(
-            url_for(
-                "ticket_detail",
-                order_id=order_id
-            )
-        )
-
-    @app.route("/tickets/search")
-    def search_ticket():
-        keyword = (
-                request.args.get("keyword") or ""
-        ).strip()
-
-        return redirect(
-            url_for(
-                "ticket_list",
-                keyword=keyword
-            )
-        )
-
-    @app.route("/tickets/filter")
-    def filter_ticket():
-        status = request.args.get("status")
-
-        return redirect(
-            url_for(
-                "ticket_list",
-                status=status
-            )
-        )
-
-    @app.route("/api/tickets/<int:order_id>")
-    def api_ticket_detail(order_id):
-
-        order = dao.get_order_detail(order_id)
-
-        if order is None:
-            return jsonify({
-                "success": False
-            })
-
-        return jsonify({
-
-            "id": order.id,
-
-            "customer": order.user.full_name,
-
-            "email": order.user.email,
-
-            "status": order.status.value,
-
-            "date": order.date.strftime(
-                "%d/%m/%Y %H:%M"
-            ),
-
-            "total_price": order.total_price
-
-        })
-
-    @app.route(
-        "/api/tickets/<int:order_id>/approve",
-        methods=["POST"]
-    )
-    def api_approve(order_id):
-
-        success, msg = dao.approve_order(order_id)
-
-        return jsonify({
-
-            "success": success,
-
-            "message": msg
-
-        })
-
-    @app.route(
-        "/api/tickets/<int:order_id>/cancel",
-        methods=["POST"]
-    )
-    def api_cancel(order_id):
-
-        success, msg = dao.cancel_order(order_id)
-
-        return jsonify({
-
-            "success": success,
-
-            "message": msg
-
-        })
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
@@ -273,23 +55,56 @@ def register_auth_route(app):
     @app.route("/register", methods=["GET"])
     @anonymous_required
     def register():
-        return render_template("auth/register.html")
+        event_types = dao.get_event_types()
+        genders = list(Gender)
+        return render_template("auth/register.html", event_types=event_types, genders=genders)
+
+    @app.route("/profile", methods=["GET", "POST"])
+    @login_required
+    def profile():
+        if request.method == "POST":
+            preferred_event_type_id = request.form.get("preferred_event_type")
+            gender_value = request.form.get("gender")
+
+            if preferred_event_type_id:
+                try:
+                    preferred_event_type_id = int(preferred_event_type_id)
+                except ValueError:
+                    preferred_event_type_id = None
+            else:
+                preferred_event_type_id = None
+
+            gender = None
+            if gender_value:
+                try:
+                    gender = Gender[gender_value]
+                except KeyError:
+                    gender = None
+
+            dao.update_user_profile(
+                current_user, gender=gender, preferred_event_type_id=preferred_event_type_id)
+            flash("Cập nhật hồ sơ thành công.")
+            return redirect(url_for('profile'))
+
+        event_types = dao.get_event_types()
+        genders = list(Gender)
+        return render_template("profile.html", event_types=event_types, genders=genders)
 
     @app.route("/api/register", methods=["POST"])
     def api_register():
         data = request.form
 
-        print(data)
         def get_safe(field):
             return (data.get(field) or "").strip()
-
 
         full_name = get_safe("name")
         email = get_safe("email")
         password = get_safe("password")
         confirm = get_safe("confirm")
+        role = get_safe("role")
+        gender = get_safe("gender")
+        preferred_event_type_id = request.form.get("preferred_event_type")
         avatar_file = request.files.get("avatar")
-
 
         valid, err_msg = run_validations([
             (dao.is_valid_name, [full_name]),
@@ -303,23 +118,31 @@ def register_auth_route(app):
             flash(err_msg)
             return redirect(url_for('register'))
 
-        DEFAULT_AVATAR = "https://res.cloudinary.com/dpxsbyyey/image/upload/v1775650754/avatar_user_nzinrm.webp"
-
-        avatar_url = DEFAULT_AVATAR
-
+        avatar_url = None
         if avatar_file and avatar_file.filename != "":
             try:
                 res = cloudinary.uploader.upload(avatar_file)
-                avatar_url = res.get("secure_url", DEFAULT_AVATAR)
+                avatar_url = res.get("secure_url")
             except Exception as e:
                 print(e)
+
+        if preferred_event_type_id:
+            try:
+                preferred_event_type_id = int(preferred_event_type_id)
+            except ValueError:
+                preferred_event_type_id = None
+        else:
+            preferred_event_type_id = None
 
         try:
             dao.add_user(
                 name=full_name,
                 email=email,
                 password=password,
-                avatar=avatar_url
+                avatar=avatar_url,
+                role_name=role,
+                gender_name=gender,
+                preferred_event_type_id=preferred_event_type_id,
             )
 
             flash("Đăng ký thành công. Vui lòng đăng nhập.")
@@ -356,27 +179,22 @@ def register_auth_route(app):
         if user.password != password and user.password != pwd_hash:
             flash("Mật khẩu không đúng.")
             return redirect(url_for('login'))
-
+        login_user(user)
         avatar = getattr(user, 'avatar', None) or ''
         full_name = getattr(user, 'full_name', email)
-        session['user_avatar'] = avatar
-        session['user_full_name'] = full_name
-        session['user_email'] = email
-
+        user.full_name = full_name
+        user.avatar = avatar
         flash("Đăng nhập thành công.")
         return redirect(url_for('home'))
 
     @app.route('/logout')
     def logout():
-        session.clear()
+        logout_user()
         return redirect(url_for('home'))
 
-@login_manager.user_loader
-def load_user(user_id):
-    return dao.load_user(user_id)
-
-register_routes(app)
-register_auth_route(app)
 
 if __name__ == "__main__":
+    register_routes(app)
+    register_auth_route(app)
+
     app.run(debug=True)

@@ -1,4 +1,4 @@
-{% extends 'layout/base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Đăng nhập - EzTicket{% endblock %}
 
@@ -11,37 +11,17 @@
     <div class="auth-form-wrapper">
         <h1 class="auth-title">Đăng nhập</h1>
 
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="alert alert-danger" role="alert">
-                    {{ messages[0] }}
-                </div>
-            {% endif %}
-        {% endwith %}
-        
         <form action="/api/login" method="POST" class="auth-form" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="email" class="form-label">Tên đăng nhập</label>
-                <input 
-                    type="text" 
-                    id="email" 
-                    name="email" 
-                    class="form-control form-control-auth"
-                    placeholder="Nhập email của bạn"
-                    required
-                >
+                <input type="text" id="email" name="email" class="form-control form-control-auth"
+                    placeholder="Nhập email của bạn" required>
             </div>
 
             <div class="form-group">
                 <label for="password" class="form-label">Mật khẩu</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    class="form-control form-control-auth"
-                    placeholder="Nhập mật khẩu"
-                    required
-                >
+                <input type="password" id="password" name="password" class="form-control form-control-auth"
+                    placeholder="Nhập mật khẩu" required>
             </div>
 
             <button type="submit" class="btn-auth-submit">Đăng nhập</button>

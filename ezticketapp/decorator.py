@@ -21,7 +21,6 @@ def role_required(*roles):
             if not current_user.is_authenticated:
                 abort(401)
 
-            print(f"User Role: {current_user.role}, Required Roles: {roles}")
             if current_user.role.value not in roles:
                 abort(403)
 

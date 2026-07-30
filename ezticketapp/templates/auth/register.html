@@ -1,4 +1,4 @@
-{% extends 'layout/base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Đăng ký - EzTicket{% endblock %}
 
@@ -11,74 +11,66 @@
 <div class="auth-container">
     <div class="auth-form-wrapper auth-form-wrapper-register">
         <h1 class="auth-title">Đăng ký</h1>
-        
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="alert alert-danger" role="alert">
-                    {{ messages[0] }}
-                </div>
-            {% endif %}
-        {% endwith %}
-        
+
         <form action="/api/register" method="POST" class="auth-form" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="name" class="form-label">Họ và tên</label>
-                <input 
-                    type="text" 
-                    id="name" 
-                    name="name" 
-                    class="form-control form-control-auth"
-                    placeholder="Nhập họ và tên"
-                    required
-                >
+                <input type="text" id="name" name="name" class="form-control form-control-auth"
+                    placeholder="Nhập họ và tên" required>
             </div>
 
             <div class="form-group">
                 <label for="email" class="form-label">Email</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    class="form-control form-control-auth"
-                    placeholder="Nhập email"
-                    required
-                >
+                <input type="email" id="email" name="email" class="form-control form-control-auth"
+                    placeholder="Nhập email" required>
             </div>
 
+            <div class="form-group">
+                <label for="role" class="form-label">Vai trò</label>
+                <select id="role" name="role" class="form-control form-control-auth" onchange="toggleCustomerFields()">
+                    <option value="CUSTOMER">Khách hàng (Customer)</option>
+                    <option value="ORGANIZER">Ban tổ chức (Organizer)</option>
+                </select>
+            </div>
+
+            <div id="customer_fields">
+                <div class="form-group">
+                    <label for="gender" class="form-label">Giới tính</label>
+                    <select id="gender" name="gender" class="form-control form-control-auth">
+                        <option value="">Chọn giới tính</option>
+                        {% for gender in genders %}
+                        <option value="{{ gender.name }}">{{ gender.value.title() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="preferred_event_type" class="form-label">Sở thích sự kiện</label>
+                    <select id="preferred_event_type" name="preferred_event_type"
+                        class="form-control form-control-auth">
+                        <option value="">Chọn sở thích</option>
+                        {% for event_type in event_types %}
+                        <option value="{{ event_type.id }}">{{ event_type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
 
             <div class="form-group">
                 <label for="reg_password" class="form-label">Mật khẩu</label>
-                <input 
-                    type="password" 
-                    id="reg_password" 
-                    name="password" 
-                    class="form-control form-control-auth"
-                    placeholder="Nhập mật khẩu"
-                    required
-                >
+                <input type="password" id="reg_password" name="password" class="form-control form-control-auth"
+                    placeholder="Nhập mật khẩu" required>
             </div>
 
             <div class="form-group">
                 <label for="confirm_password" class="form-label">Nhập lại mật khẩu</label>
-                <input 
-                    type="password" 
-                    id="confirm_password" 
-                    name="confirm" 
-                    class="form-control form-control-auth"
-                    placeholder="Nhập lại mật khẩu"
-                    required
-                >
+                <input type="password" id="confirm_password" name="confirm" class="form-control form-control-auth"
+                    placeholder="Nhập lại mật khẩu" required>
             </div>
 
             <div class="form-group">
                 <label for="avatar" class="form-label">Ảnh đại diện</label>
-                <input
-                    type="file"
-                    id="avatar"
-                    name="avatar"
-                    accept="image/*"
-                    class="form-control form-control-auth"
-                >
+                <input type="file" id="avatar" name="avatar" accept="image/*" class="form-control form-control-auth">
             </div>
 
             <button type="submit" class="btn-auth-submit">Đăng ký</button>
@@ -89,4 +81,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleCustomerFields() {
+        var role = document.getElementById('role').value;
+        var customerFields = document.getElementById('customer_fields');
+        if (role === 'CUSTOMER') {
+            customerFields.style.display = 'block';
+        } else {
+            customerFields.style.display = 'none';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleCustomerFields();
+    });
+</script>
 {% endblock %}
