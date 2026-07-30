@@ -48,7 +48,8 @@ def load_events(keyword=None, location=None, event_type_id=None, min_price=None,
 
     if is_customer and current_user.customer_profile and current_user.customer_profile.preferred_event_type_id:
         order_case = case(
-            (Event.event_type_id == current_user.customer_profile.preferred_event_type_id, 1),
+            (Event.event_type_id ==
+             current_user.customer_profile.preferred_event_type_id, 1),
             else_=2
         )
         query = query.order_by(order_case, Event.time.asc())
@@ -60,6 +61,7 @@ def load_events(keyword=None, location=None, event_type_id=None, min_price=None,
 
 def get_event_types():
     return EventType.query.order_by(EventType.name).all()
+
 
 def get_event_by_id(event_id):
     return Event.query.filter_by(id=event_id).first()
