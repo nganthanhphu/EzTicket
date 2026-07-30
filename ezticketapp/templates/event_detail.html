@@ -16,63 +16,62 @@
 
     <div class="event-content">
 
-        <div class="event-info">
+        <div class="row">
+            <div class="col-md-6 event-info">
 
-            <h2>{{ event.name }}</h2>
+                <h2>{{ event.name }}</h2>
 
-            <p>
-                <i class="fa-solid fa-calendar"></i>
+                <p>
+                    <i class="fa-solid fa-calendar"></i>
 
-                {{ event.time.strftime("%d/%m/%Y %H:%M") }}
-            </p>
+                    {{ event.time.strftime("%d/%m/%Y %H:%M") }}
+                </p>
 
-            <p>
-                <i class="fa-solid fa-location-dot"></i>
+                <p>
+                    <i class="fa-solid fa-location-dot"></i>
 
-                {{ event.location }}
-            </p>
+                    {{ event.location }}
+                </p>
 
-            <p>
+                <p>
 
-                <strong>Loại sự kiện:</strong>
+                    <strong>Loại sự kiện:</strong>
 
-                {{ event.event_type.name }}
+                    {{ event.event_type.name }}
 
-            </p>
+                </p>
 
-        </div>
+            </div>
 
 
-        <div class="organizer-box">
+            <div class="col-md-6 organizer-box">
 
-            <h4>Nhà tổ chức</h4>
+                <h4>Nhà tổ chức</h4>
 
-            <div class="organizer">
+                <div class="organizer">
 
-                <img
-                        src="{{ event.organizer.avatar }}"
-                        class="organizer-avatar">
+                    <img src="{{ event.organizer.avatar }}" class="organizer-avatar">
 
-                <div>
+                    <div>
 
-                    <h5>
+                        <h5>
 
-                        {{ event.organizer.full_name }}
+                            {{ event.organizer.full_name }}
 
-                    </h5>
+                        </h5>
 
-                    <p>
+                        <p>
 
-                        {{ event.organizer.email }}
+                            {{ event.organizer.email }}
 
-                    </p>
+                        </p>
+
+                    </div>
 
                 </div>
 
             </div>
-
         </div>
-
 
         <div class="ticket-box">
 
@@ -82,45 +81,45 @@
 
                 <thead>
 
-                <tr>
+                    <tr>
 
-                    <th>Loại vé</th>
+                        <th>Loại vé</th>
 
-                    <th>Giá</th>
+                        <th>Giá</th>
 
-                    <th>Còn lại</th>
+                        <th>Còn lại</th>
 
-                </tr>
+                    </tr>
 
                 </thead>
 
                 <tbody>
 
-                {% for ticket in event.tickets %}
+                    {% for ticket in event.tickets %}
 
-                <tr>
+                    <tr>
 
-                    <td>
+                        <td>
 
-                        {{ ticket.ticket_type.name }}
+                            {{ ticket.ticket_type.name }}
 
-                    </td>
+                        </td>
 
-                    <td>
+                        <td>
 
-                        {{ "{:,.0f}".format(ticket.price) }} VNĐ
+                            {{ "{:,.0f}".format(ticket.price) }} VNĐ
 
-                    </td>
+                        </td>
 
-                    <td>
+                        <td>
 
-                        {{ ticket.quantity }}
+                            {{ ticket.quantity }}
 
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
 
-                {% endfor %}
+                    {% endfor %}
 
                 </tbody>
 
@@ -130,7 +129,7 @@
 
         <div class="mt-4">
 
-            <button class="button-primary">
+            <button class="button-primary w-100">
 
                 Mua vé
 
