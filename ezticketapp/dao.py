@@ -61,6 +61,9 @@ def load_events(keyword=None, location=None, event_type_id=None, min_price=None,
 def get_event_types():
     return EventType.query.order_by(EventType.name).all()
 
+def get_event_by_id(event_id):
+    return Event.query.filter_by(id=event_id).first()
+
 
 def get_ticket_types():
     return TicketType.query.order_by(TicketType.name).all()

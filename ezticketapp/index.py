@@ -32,6 +32,19 @@ def register_routes(app):
             event_types=event_types,
         )
 
+    @app.route("/events/<int:event_id>")
+    def event_detail(event_id):
+        event = dao.get_event_by_id(event_id)
+
+        if not event:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("home"))
+
+        return render_template(
+            "event_detail.html",
+            event=event
+        )
+
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
