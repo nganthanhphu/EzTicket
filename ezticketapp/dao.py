@@ -134,3 +134,64 @@ def update_user_profile(user, gender=None, preferred_event_type_id=None):
 
     db.session.add(user)
     db.session.commit()
+
+def load_my_events():
+    if not current_user.is_authenticated:
+        return []
+
+    return Event.query.filter(
+        Event.organizer_id == current_user.id
+    ).order_by(Event.time.asc()).all()
+
+def load_event_tickets(event_id):
+    return EventTicket.query.filter_by(
+        event_id=event_id
+    ).order_by(EventTicket.id).all()
+
+def get_event_ticket(ticket_id):
+    return EventTicket.query.get(ticket_id)
+
+from sqlalchemy.exc import SQLAlchemyError
+
+def create_event_ticket(event_id,
+                        ticket_type_id,
+                        price,
+                        quantity):
+
+    ticket = EventTicket(
+        event_id=event_id,
+        ticket_type_id=ticket_type_id,
+        price=price,
+        quantity=quantity
+    )
+
+    try:
+        db.session.add(ticket)
+        db.session.commit()
+        return True, "Tạo vé thành công."
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        return False, "Không thể tạo vé."
+
+def update_event_ticket(ticket_id,
+                        ticket_type_id,
+                        price,
+                        quantity):
+
+    ticket = get_event_ticket(ticket_id)
+
+    if ticket is None:
+        return False, "Không tìm thấy vé."
+
+    ticket.ticket_type_id = ticket_type_id
+    ticket.price = price
+    ticket.quantity = quantity
+
+    try:
+        db.session.commit()
+        return True, "Cập nhật thành công."
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        return False, "Không thể cập nhật."

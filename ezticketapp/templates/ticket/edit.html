@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="card shadow">
+
+        <div class="card-header">
+
+            <h4>Chỉnh sửa loại vé</h4>
+
+        </div>
+
+        <div class="card-body">
+
+            <form method="post">
+
+                <div class="mb-3">
+
+                    <label>Loại vé</label>
+
+                    <select
+                            class="form-select"
+                            name="ticket_type">
+
+                        {% for t in ticket_types %}
+
+                        <option
+                                value="{{ t.id }}"
+                                {% if ticket.ticket_type_id==t.id %}
+                                selected
+                                {% endif %}
+                        >
+
+                            {{ t.name }}
+
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label>Giá</label>
+
+                    <input
+                            class="form-control"
+                            type="number"
+                            name="price"
+                            value="{{ ticket.price }}">
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label>Số lượng</label>
+
+                    <input
+                            class="form-control"
+                            type="number"
+                            name="quantity"
+                            value="{{ ticket.quantity }}">
+
+                </div>
+
+                <button class="btn btn-primary">
+
+                    Cập nhật
+
+                </button>
+
+                <a
+                        href="{{ url_for('event_detail',event_id=ticket.event_id) }}"
+                        class="btn btn-secondary">
+
+                    Quay lại
+
+                </a>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

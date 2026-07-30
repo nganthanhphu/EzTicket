@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">
+    Quản lý sự kiện
+</h2>
+
+<table class="table table-hover">
+
+    <thead>
+
+        <tr>
+
+            <th>Tên sự kiện</th>
+
+            <th>Ngày diễn ra</th>
+
+            <th>Địa điểm</th>
+
+            <th></th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+    {% for e in events %}
+
+        <tr>
+
+            <td>{{ e.name }}</td>
+
+            <td>{{ e.time.strftime("%d/%m/%Y") }}</td>
+
+            <td>{{ e.location }}</td>
+
+            <td>
+
+                <a
+                    class="btn btn-primary btn-sm"
+                    href="{{ url_for('event_detail',event_id=e.id) }}">
+
+                    Quản lý
+
+                </a>
+
+            </td>
+
+        </tr>
+
+    {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endblock %}

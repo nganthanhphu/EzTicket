@@ -34,15 +34,128 @@ def register_routes(app):
 
     @app.route("/events/<int:event_id>")
     def event_detail(event_id):
+
         event = dao.get_event_by_id(event_id)
 
-        if not event:
+        if event is None:
             flash("Không tìm thấy sự kiện.")
             return redirect(url_for("home"))
 
+        tickets = dao.load_event_tickets(event.id)
+
         return render_template(
             "event_detail.html",
-            event=event
+            event=event,
+            tickets=tickets
+        )
+
+    @app.route("/organizer/events")
+    @login_required
+    def organizer_events():
+        events = dao.load_my_events()
+
+        return render_template(
+            "organizer/events.html",
+            events=events
+        )
+
+
+    @app.route(
+        "/events/<int:event_id>/tickets/create",
+        methods=["GET", "POST"]
+    )
+    @login_required
+    def create_ticket(event_id):
+
+        event = dao.get_event_by_id(event_id)
+
+        if event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("home"))
+
+        if event is None:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("home"))
+
+        ticket_types = dao.get_ticket_types()
+
+        if request.method == "POST":
+
+            success, message = dao.create_event_ticket(
+
+                event_id=event.id,
+
+                ticket_type_id=int(request.form["ticket_type"]),
+
+                price=float(request.form["price"]),
+
+                quantity=int(request.form["quantity"])
+
+            )
+
+            flash(message)
+
+            if success:
+                return redirect(
+                    url_for(
+                        "event_detail",
+                        event_id=event.id
+                    )
+                )
+
+        return render_template(
+            "ticket/create.html",
+            event=event,
+            ticket_types=ticket_types
+        )
+
+    @app.route(
+        "/tickets/<int:ticket_id>/edit",
+        methods=["GET", "POST"]
+    )
+    @login_required
+    def edit_ticket(ticket_id):
+
+        ticket = dao.get_event_ticket(ticket_id)
+
+        if ticket.event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("home"))
+
+        if ticket is None:
+            flash("Không tìm thấy vé.")
+            return redirect(url_for("home"))
+
+        ticket_types = dao.get_ticket_types()
+
+        if request.method == "POST":
+
+            success, message = dao.update_event_ticket(
+
+                ticket.id,
+
+                int(request.form["ticket_type"]),
+
+                float(request.form["price"]),
+
+                int(request.form["quantity"])
+
+            )
+
+            flash(message)
+
+            if success:
+                return redirect(
+                    url_for(
+                        "event_detail",
+                        event_id=ticket.event_id
+                    )
+                )
+
+        return render_template(
+            "ticket/edit.html",
+            ticket=ticket,
+            ticket_types=ticket_types
         )
 
 
