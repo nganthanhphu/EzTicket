@@ -162,12 +162,10 @@ def count_ordered_tickets(user_id, event_id):
 
 def add_order(user_id, event_id, order_items, total_price, voucher_id=None, payment_method_id=None):
     auth_code = hashlib.md5(f"{user_id}{event_id}{datetime.now()}".encode("utf-8")).hexdigest()
-    auth_face = 'NOT_SET'
 
     order = Order(
         user_id=user_id,
         authentication_code=auth_code,
-        authentication_face=auth_face,
         total_price=total_price,
         date=datetime.now(),
         voucher_id=voucher_id,
