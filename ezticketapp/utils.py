@@ -1,4 +1,12 @@
+import datetime
+import hashlib
+import hmac
 import re
+import os
+import uuid
+
+import requests
+from flask import request
 
 
 def is_not_blank(value, field_name="Trường"):
@@ -73,3 +81,64 @@ def is_valid_avatar(file):
         return False, "Ảnh đại diện không hợp lệ"
 
     return True, None
+
+
+def create_momo_payment_link(order, redirect_url):
+    partner_code = os.getenv("MOMO_PARTNER_CODE")
+    access_key = os.getenv("MOMO_ACCESS_KEY")
+    secret_key = os.getenv("MOMO_SECRET_KEY")
+    payment_url = os.getenv("MOMO_PAYMENT_URL")
+    request_id = str(uuid.uuid4())
+    amount = int(order.total_price)
+    order_id = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}{order.id}"
+    order_info = f"Thanh toan don hang ma {order.id}"
+    ipn_url = f"{request.host_url}callback/momo"
+    request_type = "captureWallet"
+    extra_data = ""
+    lang = "vi"
+
+    raw_signature = (
+        f"accessKey={access_key}&amount={amount}&extraData={extra_data}"
+        f"&ipnUrl={ipn_url}&orderId={order_id}&orderInfo={order_info}"
+        f"&partnerCode={partner_code}&redirectUrl={redirect_url}"
+        f"&requestId={request_id}&requestType={request_type}"
+    )
+    signature = hmac.new(
+        secret_key.encode(), raw_signature.encode(), hashlib.sha256
+    ).hexdigest()
+
+    data = {
+        "partnerCode": partner_code,
+        "requestId": request_id,
+        "amount": str(amount),
+        "orderId": order_id,
+        "orderInfo": order_info,
+        "redirectUrl": redirect_url,
+        "ipnUrl": ipn_url,
+        "requestType": request_type,
+        "extraData": extra_data,
+        "lang": lang,
+        "signature": signature,
+    }
+
+    response = requests.post(payment_url, json=data)
+    result = response.json()
+
+    if result.get("resultCode") != 0:
+        raise Exception(
+            "Lỗi khi thực hiện thanh toánn bằng MOMo: "
+            + result.get("message")
+        )
+
+    return result.get("payUrl")
+
+
+def handle_payment_method(order, redirect_url):
+    PAYMENT_METHOD = {
+        "MoMo": create_momo_payment_link,
+    }
+
+    if order.payment_method.name in PAYMENT_METHOD:
+        return PAYMENT_METHOD[order.payment_method.name](order, redirect_url)
+    else:
+        raise Exception("Phương thức thanh toán không được hỗ trợ")

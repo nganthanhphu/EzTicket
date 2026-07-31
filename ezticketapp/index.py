@@ -1,11 +1,14 @@
+import hashlib
+import hmac
+import os
+
 import cloudinary
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import logout_user, login_user, current_user, login_required
-from ezticketapp import app, dao, db
+from ezticketapp import app, dao, db, utils
 from ezticketapp.decorator import anonymous_required, run_validations
 from cloudinary.uploader import upload
-from ezticketapp.models import OrderItem, User, Gender
-import hashlib
+from ezticketapp.models import OrderItem, User, Gender, OrderStatus
 
 
 def register_routes(app):
@@ -227,7 +230,7 @@ def register_order_routes(app):
             except ValueError:
                 flash("Phương thức thanh toán không hợp lệ.")
                 return redirect(url_for('ticket_order', event_id=event_id))
-                
+
             order_items = []
             total_price = 0
             for ticket in event.tickets:
@@ -243,14 +246,15 @@ def register_order_routes(app):
                     return redirect(url_for('ticket_order', event_id=event_id))
 
                 if quantity > 0:
-                    item = OrderItem(event_ticket_id=ticket.id, quantity=quantity)
+                    item = OrderItem(
+                        event_ticket_id=ticket.id, quantity=quantity)
                     total_price += quantity * ticket.price
                     order_items.append(item)
 
             if order_items:
                 try:
                     with db.session.begin_nested():
-                        dao.add_order(
+                        order = dao.add_order(
                             user_id=current_user.id,
                             event_id=event_id,
                             order_items=order_items,
@@ -265,6 +269,9 @@ def register_order_routes(app):
 
                         db.session.commit()
 
+                    payment_url = utils.handle_payment_method(order, redirect_url=url_for('home', _external=True))
+                    return redirect(payment_url)
+
                 except Exception as e:
                     print(e)
                     db.session.rollback()
@@ -274,9 +281,68 @@ def register_order_routes(app):
         return render_template("ticket_order.html", event=event, num_limit_order=num_limit_order, vouchers=vouchers, payment_methods=payment_methods)
 
 
+def register_payment_routes(app):
+
+    @app.route("/callback/momo", methods=["POST"])
+    def momo_callback():
+        ipn = request.get_json()
+        order_id_str = ipn.get("orderId", "")
+        try:
+            order_id = int(order_id_str[14:])
+        except (ValueError, IndexError):
+            return '', 204
+
+        order = dao.get_order_by_id(order_id)
+        if order and order.status == OrderStatus.PENDING:
+
+            access_key = os.getenv("MOMO_ACCESS_KEY")
+            secret_key = os.getenv("MOMO_SECRET_KEY")
+            partner_code = os.getenv("MOMO_PARTNER_CODE")
+
+            raw_signature = (
+                f"accessKey={access_key}"
+                f"&amount={int(order.total_price)}"
+                f"&extraData={ipn.get('extraData', '')}"
+                f"&message={ipn.get('message', '')}"
+                f"&orderId={order_id_str}"
+                f"&orderInfo={ipn.get('orderInfo', '')}"
+                f"&orderType={ipn.get('orderType', '')}"
+                f"&partnerCode={partner_code}"
+                f"&payType={ipn.get('payType', '')}"
+                f"&requestId={ipn.get('requestId', '')}"
+                f"&responseTime={ipn.get('responseTime', '')}"
+                f"&resultCode={ipn.get('resultCode')}"
+                f"&transId={ipn.get('transId', '')}"
+            )
+            signature = hmac.new(
+                secret_key.encode(), raw_signature.encode(), hashlib.sha256
+            ).hexdigest()
+
+            if signature == ipn.get("signature"):
+                try:
+                    with db.session.begin_nested():
+                        if ipn.get("resultCode") == 0:
+                            dao.update_order(
+                                order_id, status=OrderStatus.COMPLETED)
+                        else:
+                            dao.update_order(
+                                order_id, status=OrderStatus.CANCELLED)
+                            dao.update_tickets_quantity(
+                                order.order_items, is_increase=True)
+                            dao.update_voucher_quantity(
+                                order.voucher_id, is_increase=True)
+
+                        db.session.commit()
+                except Exception as e:
+                    print(e)
+                    db.session.rollback()
+        return '', 204
+
+
 if __name__ == "__main__":
     register_routes(app)
     register_auth_route(app)
     register_order_routes(app)
+    register_payment_routes(app)
 
     app.run(debug=True)
