@@ -94,7 +94,7 @@ class Order(BaseModel):
     voucher = relationship("Voucher", uselist=False)
     payment_method_id = Column(Integer, ForeignKey(
         'payment_method.id'), nullable=False)
-    payment_method = relationship("PaymentMethod", uselist=False)
+    paynt_method = relationship("PaymentMethod", uselist=False)
 
 
 class OrderItem(BaseModel):

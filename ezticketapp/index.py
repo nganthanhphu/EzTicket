@@ -1,10 +1,10 @@
 import cloudinary
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import logout_user, login_user, current_user, login_required
-from ezticketapp import app, dao
+from ezticketapp import app, dao, db
 from ezticketapp.decorator import anonymous_required, run_validations
 from cloudinary.uploader import upload
-from ezticketapp.models import User, Gender
+from ezticketapp.models import OrderItem, User, Gender
 import hashlib
 
 
@@ -193,8 +193,90 @@ def register_auth_route(app):
         return redirect(url_for('home'))
 
 
+def register_order_routes(app):
+
+    @app.route("/events/<int:event_id>/order", methods=["GET", "POST"])
+    def ticket_order(event_id):
+        event = dao.get_event_by_id(event_id)
+        max_available_tickets = 0
+
+        if event.tickets:
+            for ticket in event.tickets:
+                max_available_tickets += ticket.quantity
+
+        num_ordered_tickets = dao.count_ordered_tickets(
+            current_user.id, event_id)
+
+        num_limit_order = min(max_available_tickets,
+                              event.purchase_limit) - num_ordered_tickets
+
+        vouchers = dao.get_vouchers_by_event_id(event_id)
+
+        payment_methods = dao.get_payment_methods()
+
+        if request.method == "POST":
+            voucher_id = request.form.get("voucher_id")
+            try:
+                voucher_id = int(voucher_id) if voucher_id else None
+            except ValueError:
+                flash("Mã giảm giá không hợp lệ.")
+                return redirect(url_for('ticket_order', event_id=event_id))
+            payment_method_id = request.form.get("payment_method_id")
+            try:
+                payment_method_id = int(payment_method_id)
+            except ValueError:
+                flash("Phương thức thanh toán không hợp lệ.")
+                return redirect(url_for('ticket_order', event_id=event_id))
+                
+            order_items = []
+            total_price = 0
+            for ticket in event.tickets:
+                quantity_str = request.form.get(f"ticket_{ticket.id}")
+                try:
+                    quantity = int(quantity_str) if quantity_str else 0
+                except ValueError:
+                    quantity = 0
+
+                if quantity < 0 or quantity > ticket.quantity:
+                    flash(
+                        f"Số lượng vé cho loại '{ticket.ticket_type.name}' không hợp lệ.")
+                    return redirect(url_for('ticket_order', event_id=event_id))
+
+                if quantity > 0:
+                    item = OrderItem(event_ticket_id=ticket.id, quantity=quantity)
+                    total_price += quantity * ticket.price
+                    order_items.append(item)
+
+            if order_items:
+                try:
+                    with db.session.begin_nested():
+                        dao.add_order(
+                            user_id=current_user.id,
+                            event_id=event_id,
+                            order_items=order_items,
+                            total_price=total_price,
+                            voucher_id=voucher_id,
+                            payment_method_id=payment_method_id
+                        )
+
+                        dao.update_tickets_quantity(order_items)
+
+                        dao.update_voucher_quantity(voucher_id)
+
+                        db.session.commit()
+
+                except Exception as e:
+                    print(e)
+                    db.session.rollback()
+                    flash("Đặt vé thất bại. Vui lòng thử lại.")
+                    return redirect(url_for('ticket_order', event_id=event_id))
+
+        return render_template("ticket_order.html", event=event, num_limit_order=num_limit_order, vouchers=vouchers, payment_methods=payment_methods)
+
+
 if __name__ == "__main__":
     register_routes(app)
     register_auth_route(app)
+    register_order_routes(app)
 
     app.run(debug=True)
