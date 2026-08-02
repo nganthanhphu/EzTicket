@@ -4,9 +4,12 @@ import hmac
 import re
 import os
 import uuid
+import io
 
+import qrcode
 import requests
 from flask import request
+from flask_mail import Message
 
 
 def is_not_blank(value, field_name="Trường"):
@@ -142,3 +145,25 @@ def handle_payment_method(order, redirect_url):
         return PAYMENT_METHOD[order.payment_method.name](order, redirect_url)
     else:
         raise Exception("Phương thức thanh toán không được hỗ trợ")
+
+
+def generate_auth_qr_img(order):
+    img = qrcode.make(order.authentication_code)
+    img_buffer = io.BytesIO()
+    img.save(img_buffer, format="PNG")
+    img_buffer.seek(0)
+    return img_buffer
+
+
+def send_order_email(order):
+    from ezticketapp import mail
+    msg = Message(
+        subject=f"Mã xác thực vé tại EZTicket - Mã đơn hàng: {order.id}",
+        sender=os.getenv("MAIL_USERNAME"),
+        recipients=[order.user.email],
+        body=f"Xin chào {order.user.full_name},\n\nCảm ơn bạn đã đặt vé tại EZTicket. Mã QR xác thực của bạn đã được đính kèm bên dưới. Mã xác thực chỉ có hiệu lực một lần sử dụng. Vui lòng giữ mã này an toàn.\n\nSử dụng mã này để xác thực nếu nhà tổ chức yêu cầu khi tham gia sự kiện.\n\nTrân trọng,\nEZTicket Team!"
+    )
+
+    qr_img = generate_auth_qr_img(order)
+    msg.attach(filename="QR.png", content_type="image/png", data=qr_img.read())
+    mail.send(msg)

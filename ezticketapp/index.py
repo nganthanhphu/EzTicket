@@ -14,6 +14,8 @@ from google.genai import types
 import base64
 from io import BytesIO
 
+from ezticketapp.utils import send_order_email
+
 
 def register_routes(app):
     @app.route("/")
@@ -52,6 +54,10 @@ def register_routes(app):
             event=event
         )
 
+    @app.route("/test")
+    def test():
+        send_order_email(dao.get_order_by_id(32))
+        return render_template("home.html")
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
@@ -339,6 +345,7 @@ def register_order_routes(app):
                     res = cloudinary.uploader.upload(img_bytes)
                     url = res.get("secure_url")
                     dao.update_order(order_id, authentication_face=url)
+                    send_order_email(order)
                     db.session.commit()
                 except Exception as e:
                     print(e)
