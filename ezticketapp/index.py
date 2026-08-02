@@ -3,12 +3,16 @@ import hmac
 import os
 
 import cloudinary
+from PIL import Image
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import logout_user, login_user, current_user, login_required
-from ezticketapp import app, dao, db, utils
+from ezticketapp import app, dao, db, utils, gemini_client
 from ezticketapp.decorator import anonymous_required, run_validations
 from cloudinary.uploader import upload
 from ezticketapp.models import OrderItem, User, Gender, OrderStatus
+from google.genai import types
+import base64
+from io import BytesIO
 
 
 def register_routes(app):
@@ -269,7 +273,8 @@ def register_order_routes(app):
 
                         db.session.commit()
 
-                    payment_url = utils.handle_payment_method(order, redirect_url=url_for('home', _external=True))
+                    payment_url = utils.handle_payment_method(
+                        order, redirect_url=url_for('payment_result', order_id=order.id, _external=True))
                     return redirect(payment_url)
 
                 except Exception as e:
@@ -279,6 +284,78 @@ def register_order_routes(app):
                     return redirect(url_for('ticket_order', event_id=event_id))
 
         return render_template("ticket_order.html", event=event, num_limit_order=num_limit_order, vouchers=vouchers, payment_methods=payment_methods)
+
+    @app.route("/order/<int:order_id>/result")
+    def payment_result(order_id):
+        order = dao.get_order_by_id(order_id)
+        if not order:
+            flash("Không tìm thấy đơn hàng.")
+            return redirect(url_for("home"))
+
+        return render_template(
+            "payment_result.html",
+            order=order
+        )
+
+    @app.route("/api/face-enroll", methods=["POST"])
+    def face_enroll_api():
+        try:
+            order_id = request.json.get("order_id")
+            try:
+                order_id = int(order_id)
+            except (ValueError, TypeError):
+                return jsonify({"success": False, "message": "Đơn hàng không hợp lệ."}), 400
+
+            order = dao.get_order_by_id(order_id)
+            if not order:
+                return jsonify({"success": False, "message": "Đơn hàng không tồn tại."}), 404
+
+            if order.authentication_face is not None and order.authentication_face != "":
+                return jsonify({"success": False, "message": "Đơn hàng đã được xác minh khuôn mặt."}), 400
+
+            image = request.json.get("image")
+            if not image:
+                return jsonify({"success": False, "message": "Ảnh không hợp lệ."}), 400
+
+            img_bytes = base64.b64decode(image)
+            img = Image.open(BytesIO(img_bytes))
+
+            config = types.GenerateContentConfig(
+                system_instruction="Bạn là một chuyên gia nhận diện khuôn mặt. Hãy phân tích bức ảnh được gửi và xác định xem có khuôn mặt nào trong ảnh không, và có nhìn trực diện vào camera không, và có đầy đủ khu vực khuôn mặt không. Nếu có, hãy trả về duy nhất dòng chứa từ True. Nếu không có khuôn mặt nào, hãy trả về duy nhất dòng chứa từ False."
+            )
+
+            response = gemini_client.models.generate_content(
+                model="gemini-3.5-flash-lite",
+                contents=[img],
+                config=config
+            )
+
+            result_text = response.text.strip().lower()
+            has_face = "true" in result_text
+
+            if has_face:
+                msg = "Phát hiện khuôn mặt. Xác minh thành công!"
+                try:
+                    res = cloudinary.uploader.upload(img_bytes)
+                    url = res.get("secure_url")
+                    dao.update_order(order_id, authentication_face=url)
+                    db.session.commit()
+                except Exception as e:
+                    print(e)
+                    return jsonify({"success": False, "message": "Đã xảy ra lỗi khi lưu thông tin xác minh."}), 500
+
+            else:
+                msg = "Không phát hiện khuôn mặt trong ảnh. Vui lòng chụp lại."
+
+            return jsonify({
+                "success": True,
+                "has_face": has_face,
+                "message": msg
+            })
+
+        except Exception as e:
+            print(e)
+            return jsonify({"success": False, "message": "Đã xảy ra lỗi khi xử lý ảnh."}), 500
 
 
 def register_payment_routes(app):

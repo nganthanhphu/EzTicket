@@ -5,7 +5,7 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 import cloudinary
-
+from google import genai
 
 load_dotenv()
 
@@ -35,3 +35,5 @@ cloudinary.config(
     api_key=os.getenv('CLOUDINARY_API_KEY'),
     api_secret=os.getenv('CLOUDINARY_API_SECRET'),
 )
+
+gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
