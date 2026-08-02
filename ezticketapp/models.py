@@ -13,6 +13,7 @@ class Role(PyEnum):
 
 class OrderStatus(PyEnum):
     PENDING = "PENDING"
+    PAID = "PAID"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
 
