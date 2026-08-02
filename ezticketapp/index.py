@@ -54,10 +54,6 @@ def register_routes(app):
             event=event
         )
 
-    @app.route("/test")
-    def test():
-        send_order_email(dao.get_order_by_id(32))
-        return render_template("home.html")
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
