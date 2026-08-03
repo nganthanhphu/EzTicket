@@ -1,0 +1,45 @@
+{% extends "organizer/organizer_base.html" %}
+
+{% block title %}
+
+Dashboard
+
+{% endblock %}
+
+{% block content %}
+
+<h2>
+
+    Dashboard
+
+</h2>
+
+<div class="row mt-4">
+
+    <div class="col-md-3">
+
+        <div class="card shadow">
+
+            <div class="card-body">
+
+                <h5>
+
+                    Tổng sự kiện
+
+                </h5>
+
+                <h1>
+
+                    {{ total_events }}
+
+                </h1>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
