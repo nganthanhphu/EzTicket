@@ -9,12 +9,9 @@ load_dotenv()
 
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'EZT34232')
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-    'DATABASE_URL',
-    'mysql+pymysql://root:123456@localhost/ezticketdb?charset=utf8mb4'
-)
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.secret_key = os.getenv('SECRET_KEY')
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('DATABASE_URL')
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["PAGE_SIZE"] = 10
 app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "uploads", "events")
 
