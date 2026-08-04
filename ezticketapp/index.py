@@ -14,7 +14,7 @@ from google.genai import types
 import base64
 from io import BytesIO
 
-from ezticketapp.utils import send_order_email
+from .utils import is_valid_email, is_valid_password, is_valid_name, is_valid_confirm, is_valid_avatar, send_order_email
 
 
 def register_routes(app):
@@ -116,12 +116,12 @@ def register_auth_route(app):
         avatar_file = request.files.get("avatar")
 
         valid, err_msg = run_validations([
-            (dao.is_valid_name, [full_name]),
-            (dao.is_valid_email, [email]),
+            (utils.is_valid_name, [full_name]),
+            (utils.is_valid_email, [email]),
             (dao.is_unique_email, [email]),
-            (dao.is_valid_password, [password]),
-            (dao.is_valid_confirm, [password, confirm]),
-            (dao.is_valid_avatar, [avatar_file]),
+            (utils.is_valid_password, [password]),
+            (utils.is_valid_confirm, [password, confirm]),
+            (utils.is_valid_avatar, [avatar_file]),
         ])
         if not valid:
             flash(err_msg)
@@ -143,6 +143,7 @@ def register_auth_route(app):
         else:
             preferred_event_type_id = None
 
+        active = role != "ORGANIZER"
         try:
             dao.add_user(
                 name=full_name,
@@ -152,6 +153,7 @@ def register_auth_route(app):
                 role_name=role,
                 gender_name=gender,
                 preferred_event_type_id=preferred_event_type_id,
+                active=active,
             )
 
             flash("Đăng ký thành công. Vui lòng đăng nhập.")
@@ -188,7 +190,13 @@ def register_auth_route(app):
         if user.password != password and user.password != pwd_hash:
             flash("Mật khẩu không đúng.")
             return redirect(url_for('login'))
+
+        if not user.is_active:
+            flash("Tài khoản của bạn đang chờ duyệt.")
+            return redirect(url_for('login'))
+
         login_user(user)
+
         avatar = getattr(user, 'avatar', None) or ''
         full_name = getattr(user, 'full_name', email)
         user.full_name = full_name
@@ -263,7 +271,6 @@ def register_order_routes(app):
                         order = dao.add_order(
                             user_id=current_user.id,
                             event_id=event_id,
-                            order_items=order_items,
                             total_price=total_price,
                             voucher_id=voucher_id,
                             payment_method_id=payment_method_id
