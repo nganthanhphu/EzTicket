@@ -217,3 +217,199 @@ def update_voucher_quantity(voucher_id, is_increase=False):
                 voucher.quantity -= 1
             else:
                 raise ValueError("Số lượng voucher không hợp lệ!")
+
+def load_my_events():
+    if not current_user.is_authenticated:
+        return []
+
+    return Event.query.filter(Event.organizer_id == current_user.id).order_by(Event.time.asc()).all()
+
+
+def create_event(name, location, image, purchase_limit, cancel_limit, event_time, event_type_id, organizer_id):
+    name = (name or "").strip()
+    location = (location or "").strip()
+
+    if not name or not location:
+        return False, "Tên sự kiện và địa điểm không được để trống"
+
+    if purchase_limit < 1:
+        return False, "Giới hạn mua phải lớn hơn 0"
+
+    if cancel_limit < 0:
+        return False, "Thời gian hủy phải >= 0"
+
+    try:
+        event_datetime = datetime.strptime(event_time, "%Y-%m-%dT%H:%M")
+    except Exception:
+        return False, "Thời gian tổ chức không hợp lệ"
+
+    event = Event(
+        name=name,
+        location=location,
+        image=image or "https://res.cloudinary.com/dkzzyue98/image/upload/v1765023207/avatar_ipfsn6.jpg",
+        purchase_limit=int(purchase_limit),
+        cancellation_time_limit_by_hours=int(cancel_limit),
+        time=event_datetime,
+        event_type_id=int(event_type_id),
+        organizer_id=int(organizer_id),
+    )
+
+    try:
+        db.session.add(event)
+        db.session.commit()
+        return True, "Tạo sự kiện thành công"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể tạo sự kiện"
+
+
+def load_event_tickets(event_id):
+    return EventTicket.query.filter_by(event_id=event_id).order_by(EventTicket.id.asc()).all()
+
+
+def get_event_ticket(ticket_id):
+    return EventTicket.query.filter_by(id=ticket_id).first()
+
+
+def create_event_ticket(event_id, ticket_type_id, price, quantity):
+    if quantity < 1:
+        return False, "Số lượng vé phải lớn hơn 0"
+
+    ticket = EventTicket(
+        event_id=event_id,
+        ticket_type_id=ticket_type_id,
+        price=price,
+        quantity=quantity,
+    )
+
+    try:
+        db.session.add(ticket)
+        db.session.commit()
+        return True, "Tạo loại vé thành công"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể tạo loại vé"
+
+
+def update_event_ticket(ticket_id, ticket_type_id, price, quantity):
+    ticket = get_event_ticket(ticket_id)
+    if ticket is None:
+        return False, "Không tìm thấy vé"
+
+    if quantity < 1:
+        return False, "Số lượng vé phải lớn hơn 0"
+
+    ticket.ticket_type_id = ticket_type_id
+    ticket.price = price
+    ticket.quantity = quantity
+
+    try:
+        db.session.commit()
+        return True, "Đã cập nhật"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể cập nhật"
+
+
+def delete_event_ticket(ticket_id):
+    ticket = get_event_ticket(ticket_id)
+    if ticket is None:
+        return False, "Không tìm thấy vé"
+
+    try:
+        db.session.delete(ticket)
+        db.session.commit()
+        return True, "Đã xóa"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể xóa"
+
+
+def load_event_vouchers(event_id):
+    return Voucher.query.filter_by(event_id=event_id).order_by(Voucher.expiration_date.asc()).all()
+
+
+def get_voucher(voucher_id):
+    return Voucher.query.filter_by(id=voucher_id).first()
+
+
+def create_voucher(event_id, code, discount, quantity, expiration):
+    voucher = Voucher(
+        event_id=event_id,
+        code=code,
+        discount_percentage=discount,
+        quantity=quantity,
+        expiration_date=expiration,
+    )
+
+    try:
+        db.session.add(voucher)
+        db.session.commit()
+        return True, "Thêm voucher thành công"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể thêm voucher"
+
+
+def update_voucher(voucher_id, code, discount, quantity, expiration):
+    voucher = get_voucher(voucher_id)
+    if voucher is None:
+        return False, "Không tìm thấy voucher"
+
+    voucher.code = code
+    voucher.discount_percentage = discount
+    voucher.quantity = quantity
+    voucher.expiration_date = expiration
+
+    try:
+        db.session.commit()
+        return True, "Đã cập nhật"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể cập nhật"
+
+
+def delete_voucher(voucher_id):
+    voucher = get_voucher(voucher_id)
+    if voucher is None:
+        return False, "Không tìm thấy voucher"
+
+    try:
+        db.session.delete(voucher)
+        db.session.commit()
+        return True, "Đã xóa"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể xóa"
+
+
+def update_event(event, form, image_url=None):
+    event.name = (form.get("name") or "").strip()
+    event.location = (form.get("location") or "").strip()
+
+    if image_url:
+        event.image = image_url
+    elif (form.get("image") or "").strip():
+        event.image = (form.get("image") or "").strip()
+
+    event.purchase_limit = int(form.get("purchase_limit", event.purchase_limit))
+    event.cancellation_time_limit_by_hours = int(form.get("cancel_limit", event.cancellation_time_limit_by_hours))
+
+    if form.get("time"):
+        event.time = datetime.strptime(form.get("time"), "%Y-%m-%dT%H:%M")
+
+    if not event.name or not event.location:
+        return False, "Tên sự kiện và địa điểm không được để trống"
+
+    if event.purchase_limit < 1:
+        return False, "Giới hạn mua phải lớn hơn 0"
+
+    if event.cancellation_time_limit_by_hours < 0:
+        return False, "Thời gian hủy phải >= 0"
+
+    try:
+        db.session.commit()
+        return True, "Cập nhật sự kiện thành công"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể cập nhật"

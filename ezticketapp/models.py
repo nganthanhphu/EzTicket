@@ -66,6 +66,7 @@ class Event(BaseModel):
     organizer_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     organizer = relationship("User", uselist=False)
     tickets = relationship("EventTicket", backref="event", lazy=True)
+    vouchers = relationship("Voucher", backref="event", lazy=True)
 
 
 class EventTicket(BaseModel):

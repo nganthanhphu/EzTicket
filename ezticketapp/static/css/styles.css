@@ -155,7 +155,69 @@
   box-sizing: border-box;
 }
 
+.organizer-sidebar {
+  width: 270px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0b5ed7 0%, #083c7a 100%);
+  color: #ffffff;
+  padding: 22px 18px;
+  box-shadow: 4px 0 18px rgba(8, 60, 122, 0.22);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  position: sticky;
+  top: 0;
+}
 
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.organizer-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.organizer-sidebar li {
+  margin: 0;
+}
+
+.organizer-sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  color: #f8fbff;
+  text-decoration: none;
+  border-radius: 14px;
+  font-weight: 600;
+  transition: all 0.22s ease;
+}
+
+.organizer-sidebar a:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateX(4px);
+  color: #ffffff;
+}
+
+.organizer-sidebar i {
+  width: 18px;
+  text-align: center;
+  font-size: 1rem;
+}
 
 header.app-header {
   display: flex;

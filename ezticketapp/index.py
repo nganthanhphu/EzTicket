@@ -7,9 +7,9 @@ from PIL import Image
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import logout_user, login_user, current_user, login_required
 from ezticketapp import app, dao, db, utils, gemini_client
-from ezticketapp.decorator import anonymous_required, run_validations
+from ezticketapp.decorator import anonymous_required, run_validations, role_required
 from cloudinary.uploader import upload
-from ezticketapp.models import OrderItem, User, Gender, OrderStatus
+from ezticketapp.models import OrderItem, User, Gender, OrderStatus, Role
 from google.genai import types
 import base64
 from io import BytesIO
@@ -98,6 +98,176 @@ def register_auth_route(app):
         event_types = dao.get_event_types()
         genders = list(Gender)
         return render_template("profile.html", event_types=event_types, genders=genders)
+
+    
+    @app.route("/organizer/dashboard")
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_dashboard():
+        events = dao.load_my_events()
+        return render_template("organizer/dashboard.html", total_events=len(events))
+
+    @app.route("/organizer/events")
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_events():
+        events = dao.load_my_events()
+        return render_template("organizer/events.html", events=events)
+
+    @app.route("/organizer/events/create", methods=["GET", "POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_create_event():
+        event_types = dao.get_event_types()
+
+        if request.method == "POST":
+            image_file = request.files.get("image")
+            res = cloudinary.uploader.upload(image_file)
+            image_url = res.get("url")
+
+            if image_file and image_file.filename and not image_url:
+                flash("Tải ảnh lên thất bại.")
+                return render_template("organizer/event_edit.html", event=None, event_types=event_types, mode="create")
+
+            success, message = dao.create_event(
+                name=request.form.get("name"),
+                location=request.form.get("location"),
+                image=image_url,
+                purchase_limit=int(request.form.get("purchase_limit", 1)),
+                cancel_limit=int(request.form.get("cancel_limit", 0)),
+                event_time=request.form.get("time"),
+                event_type_id=int(request.form.get("event_type_id", event_types[0].id)),
+                organizer_id=current_user.id,
+            )
+
+            flash(message)
+            if success:
+                created_event = dao.load_my_events()[-1]
+                return redirect(url_for("organizer_edit_event", event_id=created_event.id))
+
+        return render_template("organizer/event_edit.html", event=None, event_types=event_types, mode="create")
+
+    @app.route("/organizer/events/<int:event_id>")
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_event_detail(event_id):
+        event = dao.get_event_by_id(event_id)
+        if event is None:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("organizer_events"))
+
+        if event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("organizer_events"))
+
+        tickets = dao.load_event_tickets(event.id)
+        vouchers = dao.load_event_vouchers(event.id)
+        return render_template(
+            "organizer/event_detail.html",
+            event=event,
+            tickets=tickets,
+            vouchers=vouchers,
+        )
+
+    @app.route("/organizer/events/<int:event_id>/edit", methods=["GET", "POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_edit_event(event_id):
+        event = dao.get_event_by_id(event_id)
+        if event is None:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("organizer_events"))
+
+        if event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("organizer_events"))
+
+        if request.method == "POST":
+            image_file = request.files.get("image")
+            res = cloudinary.uploader.upload(image_file)
+            image_url = res.get("url")
+
+            if image_file and image_file.filename and not image_url:
+                flash("Tải ảnh lên thất bại.")
+                return redirect(url_for("organizer_edit_event", event_id=event.id))
+
+            success, message = dao.update_event(event, request.form, image_url=image_url)
+            flash(message)
+            if success:
+                return redirect(url_for("organizer_event_detail", event_id=event.id))
+
+        tickets = dao.load_event_tickets(event.id)
+        vouchers = dao.load_event_vouchers(event.id)
+        ticket_types = dao.get_ticket_types()
+        event_types = dao.get_event_types()
+        return render_template(
+            "organizer/event_edit.html",
+            event=event,
+            tickets=tickets,
+            vouchers=vouchers,
+            ticket_types=ticket_types,
+            event_types=event_types,
+            mode="edit",
+        )
+
+    @app.route("/organizer/events/<int:event_id>/tickets/create", methods=["POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_create_ticket(event_id):
+        event = dao.get_event_by_id(event_id)
+        if event is None or event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("organizer_events"))
+
+        success, message = dao.create_event_ticket(
+            event_id,
+            int(request.form["ticket_type"]),
+            float(request.form["price"]),
+            int(request.form["quantity"]),
+        )
+        flash(message)
+        return redirect(url_for("organizer_edit_event", event_id=event_id))
+
+    @app.route("/organizer/tickets/<int:ticket_id>/edit", methods=["POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_edit_ticket(ticket_id):
+        ticket = dao.get_event_ticket(ticket_id)
+        if ticket is None:
+            flash("Không tìm thấy vé.")
+            return redirect(url_for("organizer_events"))
+
+        event = dao.get_event_by_id(ticket.event_id)
+        if event is None or event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("organizer_events"))
+
+        success, message = dao.update_event_ticket(
+            ticket.id,
+            int(request.form["ticket_type"]),
+            float(request.form["price"]),
+            int(request.form["quantity"]),
+        )
+        flash(message)
+        return redirect(url_for("organizer_edit_event", event_id=ticket.event_id))
+
+    @app.route("/organizer/tickets/<int:ticket_id>/delete")
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_delete_ticket(ticket_id):
+        ticket = dao.get_event_ticket(ticket_id)
+        if ticket is None:
+            flash("Không tìm thấy vé.")
+            return redirect(url_for("organizer_events"))
+
+        event = dao.get_event_by_id(ticket.event_id)
+        if event is None or event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("organizer_events"))
+
+        success, message = dao.delete_event_ticket(ticket_id)
+        flash(message)
+        return redirect(url_for("organizer_edit_event", event_id=ticket.event_id))
 
     @app.route("/api/register", methods=["POST"])
     def api_register():
@@ -202,6 +372,8 @@ def register_auth_route(app):
         user.full_name = full_name
         user.avatar = avatar
         flash("Đăng nhập thành công.")
+        if user.role == Role.ORGANIZER:
+            return redirect(url_for("organizer_dashboard"))
         return redirect(url_for('home'))
 
     @app.route('/logout')

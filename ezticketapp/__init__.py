@@ -31,6 +31,12 @@ def load_user(user_id):
 
 
 login_manager.login_view = 'login'
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    from ezticketapp.dao import get_user_by_id
+    return get_user_by_id(int(user_id))
 cloudinary.config(
     cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
     api_key=os.getenv('CLOUDINARY_API_KEY'),
