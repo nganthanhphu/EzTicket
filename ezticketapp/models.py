@@ -13,6 +13,7 @@ class Role(PyEnum):
 
 class OrderStatus(PyEnum):
     PENDING = "PENDING"
+    PAID = "PAID"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
 
@@ -67,6 +68,7 @@ class Event(BaseModel):
     tickets = relationship("EventTicket", backref="event", lazy=True)
     vouchers = relationship("Voucher", backref="event", lazy=True)
 
+
 class EventTicket(BaseModel):
     event_id = Column(Integer, ForeignKey('event.id'), nullable=False)
     price = Column(Float, nullable=False)
@@ -84,7 +86,7 @@ class Order(BaseModel):
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     user = relationship("User", uselist=False, lazy=True)
     authentication_code = Column(String(100), nullable=False)
-    authentication_face = Column(String(255), nullable=False)
+    authentication_face = Column(String(255), nullable=True)
     status = Column(Enum(OrderStatus), nullable=False,
                     default=OrderStatus.PENDING)
     total_price = Column(Float, nullable=False)

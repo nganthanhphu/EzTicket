@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{% block title %}Kết quả thanh toán{% endblock %}\
+
+
+{% block content %}
+<style>
+    .face-scan-svg {
+        width: 130px;
+        display: block;
+        margin: 0 auto 20px;
+    }
+
+    .face-outline {
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+        animation: draw-face 1.2s ease-out forwards;
+    }
+
+    .face-features {
+        opacity: 0;
+        animation: fade-in 0.5s ease-out 0.8s forwards;
+    }
+
+    .corner {
+        stroke-dasharray: 30;
+        stroke-dashoffset: 30;
+        animation: corner-draw 0.6s ease-out forwards;
+    }
+
+    .corner-tl {
+        animation-delay: 0.2s;
+    }
+
+    .corner-tr {
+        animation-delay: 0.3s;
+    }
+
+    .corner-br {
+        animation-delay: 0.4s;
+    }
+
+    .corner-bl {
+        animation-delay: 0.5s;
+    }
+
+    .scan-line {
+        stroke: url(#scan-gradient);
+        stroke-width: 2;
+        opacity: 0;
+        animation: scan-sweep 2s ease-in-out 1s infinite;
+    }
+
+    .scan-glow {
+        opacity: 0;
+        animation: scan-sweep 2s ease-in-out 1s infinite;
+    }
+
+    @keyframes draw-face {
+        0% {
+            stroke-dashoffset: 200;
+        }
+
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @keyframes fade-in {
+        0% {
+            opacity: 0;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes corner-draw {
+        0% {
+            stroke-dashoffset: 30;
+        }
+
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @keyframes scan-sweep {
+        0% {
+            transform: translateY(12px);
+            opacity: 0;
+        }
+
+        10% {
+            opacity: 1;
+        }
+
+        90% {
+            opacity: 1;
+        }
+
+        100% {
+            transform: translateY(92px);
+            opacity: 0;
+        }
+    }
+
+    @keyframes pulse-outline {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+    .face-outline-loop {
+        animation: pulse-outline 2s ease-in-out infinite;
+    }
+
+    #camera,
+    #preview {
+        border: 3px solid #dee2e6;
+        border-radius: 12px;
+    }
+</style>
+<div class="container text-center py-5">
+    {% if order.status.name == 'COMPLETED' %}
+    <div class="mb-4">
+        <svg class="face-scan-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="scan-gradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#73AF55" stop-opacity="0" />
+                    <stop offset="30%" stop-color="#73AF55" stop-opacity="0.6" />
+                    <stop offset="50%" stop-color="#73AF55" stop-opacity="1" />
+                    <stop offset="70%" stop-color="#73AF55" stop-opacity="0.6" />
+                    <stop offset="100%" stop-color="#73AF55" stop-opacity="0" />
+                </linearGradient>
+                <clipPath id="scan-clip">
+                    <rect x="18" y="10" width="84" height="100" rx="4" />
+                </clipPath>
+            </defs>
+
+            <!-- Viewfinder corners -->
+            <path class="corner corner-tl" d="M12,10 L12,4 L18,4" fill="none" stroke="#73AF55" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round" />
+            <path class="corner corner-tr" d="M102,4 L108,4 L108,10" fill="none" stroke="#73AF55" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round" />
+            <path class="corner corner-bl" d="M12,110 L12,116 L18,116" fill="none" stroke="#73AF55" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round" />
+            <path class="corner corner-br" d="M102,116 L108,116 L108,110" fill="none" stroke="#73AF55" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- Face outline -->
+            <ellipse class="face-outline face-outline-loop" cx="60" cy="56" rx="22" ry="28" fill="none" stroke="#73AF55"
+                stroke-width="2.5" />
+
+            <!-- Eyes -->
+            <g class="face-features">
+                <circle cx="51" cy="48" r="2.2" fill="#73AF55" />
+                <circle cx="69" cy="48" r="2.2" fill="#73AF55" />
+                <path d="M53,64 Q60,70 67,64" fill="none" stroke="#73AF55" stroke-width="1.8" stroke-linecap="round" />
+            </g>
+
+            <!-- Scan line group -->
+            <g clip-path="url(#scan-clip)">
+                <line class="scan-glow" x1="20" y1="0" x2="100" y2="0" stroke="#73AF55" stroke-width="6"
+                    opacity="0.15" />
+                <line class="scan-line" x1="20" y1="0" x2="100" y2="0" />
+            </g>
+        </svg>
+        {% if order.authentication_face is not none and order.authentication_face != "" %}
+        <p class="text-success">Đơn hàng #{{ order.id }} đã được xác minh khuôn mặt.</p>
+        {% else %}
+        <div class="mb-4">
+            <h3 class="text-danger fw-bold">Yêu cầu xác minh khuôn mặt</h3>
+            <p class="text-muted mb-0">Vui lòng chụp hình ảnh khuôn mặt của bạn để hoàn tất quá trình đặt vé.</p>
+            <p class="text-muted">Hình ảnh phải rõ ràng và hiển thị toàn bộ khuôn mặt. Mắt phải được nhìn trực diện vào
+                camera.</p>
+        </div>
+
+        <div class="mb-4">
+            <button id="btnOpenCamera" class="btn btn-primary mt-3" onclick="openCamera()">
+                <i class="fa-solid fa-camera me-2"></i> Mở camera
+            </button>
+        </div>
+
+        <div id="cameraSection" class="mb-4" style="display:none;">
+            <video id="camera" autoplay playsinline class="rounded mb-3"
+                style="max-width:100%; max-height:400px;"></video>
+            <canvas id="captureCanvas" style="display:none;"></canvas>
+            <div>
+                <button id="btnCapture" class="btn btn-success" onclick="capturePhoto()">
+                    <i class="fa-solid fa-circle-dot me-2"></i> Chụp
+                </button>
+            </div>
+        </div>
+
+        <div id="previewSection" class="mb-4" style="display:none;">
+            <img id="preview" class="rounded mb-3" style="max-width:100%; max-height:400px;">
+            <div>
+                <button class="btn btn-secondary me-2" onclick="retakePhoto()">
+                    <i class="fa-solid fa-arrows-rotate me-2"></i> Chụp lại
+                </button>
+                <button id="btnConfirm" class="btn btn-primary" onclick="confirmPhoto()">
+                    <i class="fa-solid fa-check me-2"></i> Xác nhận
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <div class="mb-4">
+        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
+            <circle class="path circle" fill="none" stroke="#D06079" stroke-width="6" stroke-miterlimit="10" cx="65.1"
+                cy="65.1" r="62.1" />
+            <line class="path line" fill="none" stroke="#D06079" stroke-width="6" stroke-linecap="round"
+                stroke-miterlimit="10" x1="34.4" y1="37.9" x2="95.8" y2="92.3" />
+            <line class="path line" fill="none" stroke="#D06079" stroke-width="6" stroke-linecap="round"
+                stroke-miterlimit="10" x1="95.8" y1="38" x2="34.4" y2="92.2" />
+        </svg>
+    </div>
+    <div class="mb-4">
+        <h3 class="text-danger fw-bold">Đặt vé không thành công!</h3>
+        <p class="text-muted">Vui lòng nhấn kiểm tra lại nếu bạn đã thanh toán, hoặc đặt lại vé để thử lại.</p>
+        <button class="btn btn-primary mt-3" onclick="location.reload();">
+            <i class="fa-solid fa-arrows-rotate me-2"></i> Kiểm tra lại
+        </button>
+        <a href="{{ url_for('home') }}" class="btn btn-danger mt-3">
+            <i class="fa-solid fa-home me-2"></i> Quay lại trang chủ
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let cameraStream = null;
+
+    function openCamera() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            .then(function (stream) {
+                cameraStream = stream;
+                const video = document.getElementById('camera');
+                video.srcObject = stream;
+
+                document.getElementById('btnOpenCamera').style.display = 'none';
+                document.getElementById('cameraSection').style.display = 'block';
+                document.getElementById('previewSection').style.display = 'none';
+            })
+            .catch(function (err) {
+                alert('Không thể truy cập camera: ' + err.message);
+            });
+    }
+
+    function capturePhoto() {
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('captureCanvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        document.getElementById('preview').src = dataUrl;
+
+        stopCamera();
+
+        document.getElementById('cameraSection').style.display = 'none';
+        document.getElementById('previewSection').style.display = 'block';
+    }
+
+    function retakePhoto() {
+        document.getElementById('previewSection').style.display = 'none';
+        openCamera();
+    }
+
+    function confirmPhoto() {
+        const dataUrl = document.getElementById('preview').src;
+        const base64 = dataUrl.split(',')[1];
+
+        document.getElementById('btnConfirm').disabled = true;
+        document.getElementById('btnConfirm').innerHTML =
+            '<i class="fa-solid fa-spinner fa-spin me-2"></i> Đang gửi...';
+
+        fetch('{{ url_for("face_enroll_api") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64, order_id: {{ order.id }} })
+        }).then((res) => res.json())
+        .then(function (data) {
+            if (data.success) {
+                if (data.has_face) {
+                    alert('Xác nhận khuôn mặt thành công! Vui lòng kiểm tra email để nhận vé.');
+                    window.location.href = '{{ url_for("home") }}';
+                } else {
+                    alert('Không phát hiện khuôn mặt trong ảnh. Vui lòng thử lại.');
+                    retakePhoto();
+                }
+            } else {
+                alert('Đã xảy ra lỗi: ' + data.message);
+                retakePhoto();
+            }
+        })
+        .catch(function (err) {
+            alert('Đã xảy ra lỗi: ' + err.message);
+        })
+        .finally(function () {
+            document.getElementById('btnConfirm').disabled = false;
+            document.getElementById('btnConfirm').innerHTML =
+                '<i class="fa-solid fa-check me-2"></i> Xác nhận';
+        });
+    }
+
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(function (track) { track.stop(); });
+            cameraStream = null;
+        }
+    }
+
+    window.addEventListener('beforeunload', stopCamera);
+</script>
+{% endblock %}
