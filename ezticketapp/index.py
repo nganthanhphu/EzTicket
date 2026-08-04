@@ -361,7 +361,7 @@ def register_auth_route(app):
             flash("Mật khẩu không đúng.")
             return redirect(url_for('login'))
 
-        if not user.is_active:
+        if not user.active:
             flash("Tài khoản của bạn đang chờ duyệt.")
             return redirect(url_for('login'))
 
