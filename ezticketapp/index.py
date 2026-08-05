@@ -1,15 +1,17 @@
 import hashlib
 import hmac
 import os
+from datetime import datetime, timedelta
 
 import cloudinary
 from PIL import Image
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import logout_user, login_user, current_user, login_required
-from ezticketapp import app, dao, db, utils, gemini_client
+from flask_mail import Message
+from ezticketapp import app, dao, db, utils, gemini_client, mail
 from ezticketapp.decorator import anonymous_required, run_validations, role_required
 from cloudinary.uploader import upload
-from ezticketapp.models import OrderItem, User, Gender, OrderStatus, Role
+from ezticketapp.models import Order, OrderItem, User, Gender, OrderStatus, Role
 from google.genai import types
 import base64
 from io import BytesIO
@@ -95,7 +97,122 @@ def register_auth_route(app):
 
         event_types = dao.get_event_types()
         genders = list(Gender)
-        return render_template("profile.html", event_types=event_types, genders=genders)
+        orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.date.desc()).all()
+        return render_template("profile.html", event_types=event_types, genders=genders, orders=orders)
+
+    @app.route("/my-tickets")
+    @login_required
+    def my_tickets():
+        orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.date.desc()).all()
+        now = datetime.now()
+
+        for order in orders:
+            order.can_cancel = False
+            order.cancel_message = "Không khả dụng"
+            order.event_name = "Không xác định"
+            order.cancel_deadline = None
+
+            event = None
+            for item in order.order_items:
+                if item.event_ticket and item.event_ticket.event:
+                    event = item.event_ticket.event
+                    break
+
+            if event:
+                order.event_name = event.name
+                order.cancel_deadline = event.time - timedelta(hours=event.cancellation_time_limit_by_hours)
+
+            if order.status not in (OrderStatus.PENDING, OrderStatus.COMPLETED):
+                order.cancel_message = "Đã hủy" if order.status == OrderStatus.CANCELLED else "Không khả dụng"
+                continue
+
+            if not event:
+                order.cancel_message = "Không xác định được sự kiện"
+                continue
+
+            if event.time <= now:
+                order.cancel_message = "Sự kiện đã diễn ra"
+                continue
+
+            if now > order.cancel_deadline:
+                order.cancel_message = "Đã quá hạn hủy"
+                continue
+
+            order.can_cancel = True
+            order.cancel_message = "Còn thời hạn hủy"
+
+        return render_template("my_tickets.html", orders=orders)
+
+    @app.route("/orders/<int:order_id>/cancel", methods=["POST"])
+    @login_required
+    def cancel_order(order_id):
+        order = dao.get_order_by_id(order_id)
+        if not order:
+            flash("Không tìm thấy đơn hàng.")
+            return redirect(url_for('my_tickets'))
+
+        if order.user_id != current_user.id:
+            flash("Bạn không có quyền hủy đơn hàng này.")
+            return redirect(url_for('my_tickets'))
+
+        if order.status == OrderStatus.CANCELLED:
+            flash("Đơn hàng này đã được hủy trước đó.")
+            return redirect(url_for('my_tickets'))
+
+        if order.status not in (OrderStatus.PENDING, OrderStatus.COMPLETED):
+            flash("Đơn hàng không thể hủy ở trạng thái hiện tại.")
+            return redirect(url_for('my_tickets'))
+
+        event = None
+        for item in order.order_items:
+            if item.event_ticket and item.event_ticket.event:
+                event = item.event_ticket.event
+                break
+
+        if not event:
+            flash("Không xác định được sự kiện của đơn hàng.")
+            return redirect(url_for('my_tickets'))
+
+        if event.time <= datetime.now():
+            flash("Sự kiện đã diễn ra, không thể hủy vé.")
+            return redirect(url_for('my_tickets'))
+
+        cancel_deadline = event.time - timedelta(hours=event.cancellation_time_limit_by_hours)
+        if datetime.now() > cancel_deadline:
+            flash("Đã quá thời hạn hủy vé theo quy định của sự kiện.")
+            return redirect(url_for('my_tickets'))
+
+        try:
+            with db.session.begin_nested():
+                dao.update_order(order_id, status=OrderStatus.CANCELLED)
+                dao.update_tickets_quantity(order.order_items, is_increase=True)
+                dao.update_voucher_quantity(order.voucher_id, is_increase=True)
+                db.session.commit()
+
+            try:
+                msg = Message(
+                    subject=f"EzTicket - Hủy vé thành công (Đơn hàng #{order.id})",
+                    sender=os.getenv("MAIL_USERNAME"),
+                    recipients=[order.user.email],
+                    body=(
+                        f"Xin chào {order.user.full_name},\n\n"
+                        f"Bạn đã hủy thành công đơn hàng #{order.id}.\n"
+                        f"Sự kiện: {event.name}\n"
+                        f"Thời gian hủy: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+                        f"Trân trọng,\nEZTicket Team"
+                    )
+                )
+                mail.send(msg)
+            except Exception as email_error:
+                print(email_error)
+
+            flash("Hủy vé thành công.")
+        except Exception as e:
+            print(e)
+            db.session.rollback()
+            flash("Hủy vé thất bại. Vui lòng thử lại.")
+
+        return redirect(url_for('my_tickets'))
 
     
     @app.route("/organizer/dashboard")
@@ -441,6 +558,7 @@ def register_order_routes(app):
                         order = dao.add_order(
                             user_id=current_user.id,
                             event_id=event_id,
+                            order_items=order_items,
                             total_price=total_price,
                             voucher_id=voucher_id,
                             payment_method_id=payment_method_id
