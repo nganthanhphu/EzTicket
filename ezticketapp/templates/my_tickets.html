@@ -18,7 +18,7 @@
                 <thead>
                     <tr>
                         <th>Mã đơn</th>
-                        <th>Ngày đặt</th>
+                        <th>Sự kiện</th>
                         <th>Tổng tiền</th>
                         <th>Trạng thái</th>
                         <th>Hủy vé</th>
@@ -26,10 +26,11 @@
                 </thead>
                 <tbody>
                     {% for order in orders %}
+                    {% set event_name = order.event_name if order.event_name is defined else '' %}
                     <tr>
                         <td>#{{ order.id }}</td>
                         <td>
-                            <div><strong>{{ order.event_name }}</strong></div>
+                            <div><strong>{{ event_name }}</strong></div>
                             <div class="small text-muted">{{ order.date.strftime('%d/%m/%Y %H:%M') }}</div>
                         </td>
                         <td>{{ '{:,.0f}'.format(order.total_price) }} VND</td>
@@ -41,15 +42,9 @@
                             {% elif order.status.name == 'CANCELLED' %}
                             <span class="badge bg-secondary">CANCELLED</span>
                             {% endif %}
-                            <div class="small mt-1 {% if order.can_cancel %}text-success{% elif order.status.name == 'CANCELLED' %}text-muted{% else %}text-danger{% endif %}">
-                                {{ order.cancel_message }}
-                            </div>
-                            {% if order.cancel_deadline %}
-                            <div class="small text-muted mt-1">Hạn hủy: {{ order.cancel_deadline.strftime('%d/%m/%Y %H:%M') }}</div>
-                            {% endif %}
                         </td>
                         <td>
-                            {% if order.can_cancel %}
+                            {% if order.status.name == 'COMPLETED' %}
                             <form method="post" action="{{ url_for('cancel_order', order_id=order.id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn hủy vé này không?');">
                                 <button type="submit" class="btn btn-outline-danger btn-sm">Hủy vé</button>
                             </form>

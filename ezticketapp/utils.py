@@ -11,6 +11,8 @@ import requests
 from flask import request
 from flask_mail import Message
 
+from ezticketapp.models import OrderStatus
+
 
 def is_not_blank(value, field_name="Trường"):
     if not value or not value.strip():
@@ -167,3 +169,33 @@ def send_order_email(order):
     qr_img = generate_auth_qr_img(order)
     msg.attach(filename="QR.png", content_type="image/png", data=qr_img.read())
     mail.send(msg)
+
+
+def get_order_event(order):
+    for item in getattr(order, "order_items", []) or []:
+        event_ticket = getattr(item, "event_ticket", None)
+        candidate_event = getattr(event_ticket, "event", None)
+        if candidate_event:
+            return candidate_event
+    return None
+
+
+def can_cancel_order(order, current_time=None):
+    current_time = current_time or datetime.datetime.now()
+
+    status_value = getattr(order.status, "value", order.status)
+    if status_value != OrderStatus.COMPLETED.value:
+        return False
+
+    if not getattr(order, "order_items", None):
+        return False
+
+    event = get_order_event(order)
+    if not event:
+        return False
+
+    if event.time <= current_time:
+        return False
+
+    deadline = event.time - datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
+    return current_time <= deadline

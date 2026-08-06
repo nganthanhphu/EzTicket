@@ -103,45 +103,21 @@ def register_auth_route(app):
     @app.route("/my-tickets")
     @login_required
     def my_tickets():
-        orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.date.desc()).all()
-        now = datetime.now()
+        orders = (
+            Order.query
+            .filter_by(user_id=current_user.id)
+            .order_by(Order.date.desc())
+            .all()
+        )
 
         for order in orders:
-            order.can_cancel = False
-            order.cancel_message = "Không khả dụng"
-            order.event_name = "Không xác định"
-            order.cancel_deadline = None
+            event = utils.get_order_event(order)
+            order.event_name = event.name if event else "Không xác định"
 
-            event = None
-            for item in order.order_items:
-                if item.event_ticket and item.event_ticket.event:
-                    event = item.event_ticket.event
-                    break
-
-            if event:
-                order.event_name = event.name
-                order.cancel_deadline = event.time - timedelta(hours=event.cancellation_time_limit_by_hours)
-
-            if order.status not in (OrderStatus.PENDING, OrderStatus.COMPLETED):
-                order.cancel_message = "Đã hủy" if order.status == OrderStatus.CANCELLED else "Không khả dụng"
-                continue
-
-            if not event:
-                order.cancel_message = "Không xác định được sự kiện"
-                continue
-
-            if event.time <= now:
-                order.cancel_message = "Sự kiện đã diễn ra"
-                continue
-
-            if now > order.cancel_deadline:
-                order.cancel_message = "Đã quá hạn hủy"
-                continue
-
-            order.can_cancel = True
-            order.cancel_message = "Còn thời hạn hủy"
-
-        return render_template("my_tickets.html", orders=orders)
+        return render_template(
+            "my_tickets.html",
+            orders=orders
+        )
 
     @app.route("/orders/<int:order_id>/cancel", methods=["POST"])
     @login_required
@@ -155,31 +131,14 @@ def register_auth_route(app):
             flash("Bạn không có quyền hủy đơn hàng này.")
             return redirect(url_for('my_tickets'))
 
-        if order.status == OrderStatus.CANCELLED:
-            flash("Đơn hàng này đã được hủy trước đó.")
+        if not utils.can_cancel_order(order):
+            flash("Đơn hàng này không thể hủy ở trạng thái hiện tại hoặc đã quá hạn hủy.")
             return redirect(url_for('my_tickets'))
 
-        if order.status not in (OrderStatus.PENDING, OrderStatus.COMPLETED):
-            flash("Đơn hàng không thể hủy ở trạng thái hiện tại.")
-            return redirect(url_for('my_tickets'))
-
-        event = None
-        for item in order.order_items:
-            if item.event_ticket and item.event_ticket.event:
-                event = item.event_ticket.event
-                break
+        event = utils.get_order_event(order)
 
         if not event:
             flash("Không xác định được sự kiện của đơn hàng.")
-            return redirect(url_for('my_tickets'))
-
-        if event.time <= datetime.now():
-            flash("Sự kiện đã diễn ra, không thể hủy vé.")
-            return redirect(url_for('my_tickets'))
-
-        cancel_deadline = event.time - timedelta(hours=event.cancellation_time_limit_by_hours)
-        if datetime.now() > cancel_deadline:
-            flash("Đã quá thời hạn hủy vé theo quy định của sự kiện.")
             return redirect(url_for('my_tickets'))
 
         try:

@@ -62,53 +62,6 @@
       <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
     </form>
     {% endif %}
-
-    {% if orders %}
-    <div class="mt-4">
-      <h4 class="mb-3">Lịch sử đặt vé</h4>
-      <div class="table-responsive">
-        <table class="table table-bordered align-middle">
-          <thead>
-            <tr>
-              <th>Mã đơn</th>
-              <th>Ngày đặt</th>
-              <th>Tổng tiền</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for order in orders %}
-            <tr>
-              <td>#{{ order.id }}</td>
-              <td>{{ order.date.strftime('%d/%m/%Y %H:%M') }}</td>
-              <td>{{ '{:,.0f}'.format(order.total_price) }} VND</td>
-              <td>
-                {% if order.status.name == 'COMPLETED' %}
-                <span class="badge bg-success">COMPLETED</span>
-                {% elif order.status.name == 'PENDING' %}
-                <span class="badge bg-warning text-dark">PENDING</span>
-                {% elif order.status.name == 'CANCELLED' %}
-                <span class="badge bg-secondary">CANCELLED</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if order.status.name in ['PENDING', 'COMPLETED'] %}
-                <form method="post" action="{{ url_for('cancel_order', order_id=order.id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn hủy vé này không?');">
-                  <button type="submit" class="btn btn-outline-danger btn-sm">Hủy vé</button>
-                </form>
-                {% else %}
-                <span class="text-muted">Không khả dụng</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-
     <div class="d-flex gap-2">
       <a href="{{ url_for('home') }}" class="btn btn-primary">Về trang chủ</a>
       <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">Đăng xuất</a>
