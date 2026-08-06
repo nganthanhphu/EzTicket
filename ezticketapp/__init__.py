@@ -16,7 +16,6 @@ app.secret_key = os.getenv('SECRET_KEY')
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('DATABASE_URL')
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["PAGE_SIZE"] = 6
-
 db = SQLAlchemy(app=app)
 
 
@@ -42,6 +41,9 @@ cloudinary.config(
     api_key=os.getenv('CLOUDINARY_API_KEY'),
     api_secret=os.getenv('CLOUDINARY_API_SECRET'),
 )
+
+
+
 
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 

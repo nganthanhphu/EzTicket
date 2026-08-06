@@ -13,7 +13,8 @@ Chỉnh sửa sự kiện
     </div>
 
     <div>
-        <a href="{% if mode == 'create' %}{{ url_for('organizer_events') }}{% else %}{{ url_for('organizer_event_detail', event_id=event.id) }}{% endif %}" class="btn btn-secondary">
+        <a href="{% if mode == 'create' %}{{ url_for('organizer_events') }}{% else %}{{ url_for('organizer_event_detail', event_id=event.id) }}{% endif %}"
+            class="btn btn-secondary">
             <i class="fa-solid fa-arrow-left"></i>
             Quay lại
         </a>
@@ -27,21 +28,26 @@ Chỉnh sửa sự kiện
                 <h5 class="mb-0">Thông tin sự kiện</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{% if mode == 'create' %}{{ url_for('organizer_create_event') }}{% else %}{{ url_for('organizer_edit_event', event_id=event.id) }}{% endif %}" enctype="multipart/form-data">
+                <form method="POST"
+                    action="{% if mode == 'create' %}{{ url_for('organizer_create_event') }}{% else %}{{ url_for('organizer_edit_event', event_id=event.id) }}{% endif %}"
+                    enctype="multipart/form-data">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Tên sự kiện</label>
-                            <input type="text" class="form-control" name="name" value="{{ event.name if event else '' }}" required>
+                            <input type="text" class="form-control" name="name"
+                                value="{{ event.name if event else '' }}" required>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Địa điểm</label>
-                            <input type="text" class="form-control" name="location" value="{{ event.location if event else '' }}" required>
+                            <input type="text" class="form-control" name="location"
+                                value="{{ event.location if event else '' }}" required>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Thời gian tổ chức</label>
-                            <input type="datetime-local" class="form-control" name="time" value="{% if event %}{{ event.time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                            <input type="datetime-local" class="form-control" name="time"
+                                value="{% if event %}{{ event.time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
                         </div>
 
                         <div class="col-md-6">
@@ -54,19 +60,22 @@ Chỉnh sửa sự kiện
 
                         <div class="col-md-6">
                             <label class="form-label">Giới hạn mua / người</label>
-                            <input type="number" class="form-control" name="purchase_limit" value="{{ event.purchase_limit if event else 1 }}" min="1" required>
+                            <input type="number" class="form-control" name="purchase_limit"
+                                value="{{ event.purchase_limit if event else 1 }}" min="1" required>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Cho phép hủy trước (giờ)</label>
-                            <input type="number" class="form-control" name="cancel_limit" value="{{ event.cancellation_time_limit_by_hours if event else 0 }}" min="0" required>
+                            <input type="number" class="form-control" name="cancel_limit"
+                                value="{{ event.cancellation_time_limit_by_hours if event else 0 }}" min="0" required>
                         </div>
 
                         <div class="col-md-12">
                             <label class="form-label">Loại sự kiện</label>
                             <select class="form-select" name="event_type_id" required>
                                 {% for type in event_types %}
-                                <option value="{{ type.id }}" {% if event and type.id == event.event_type_id %}selected{% endif %}>{{ type.name }}</option>
+                                <option value="{{ type.id }}" {% if event and type.id==event.event_type_id %}selected{%
+                                    endif %}>{{ type.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -97,9 +106,12 @@ Chỉnh sửa sự kiện
 
                 <p class="fw-bold mb-1">{{ event.name if event else 'Sự kiện mới' }}</p>
                 <p class="text-muted mb-2">{{ event.location if event else 'Chưa có địa điểm' }}</p>
-                <p class="mb-1"><strong>Thời gian:</strong> {% if event %}{{ event.time.strftime('%d/%m/%Y %H:%M') }}{% else %}Chưa cập nhật{% endif %}</p>
-                <p class="mb-1"><strong>Loại:</strong> {% if event %}{{ event.event_type.name }}{% else %}Chưa chọn{% endif %}</p>
-                <p class="mb-0"><strong>Giới hạn mua:</strong> {% if event %}{{ event.purchase_limit }} người{% else %}Chưa cập nhật{% endif %}</p>
+                <p class="mb-1"><strong>Thời gian:</strong> {% if event %}{{ event.time.strftime('%d/%m/%Y %H:%M') }}{%
+                    else %}Chưa cập nhật{% endif %}</p>
+                <p class="mb-1"><strong>Loại:</strong> {% if event %}{{ event.event_type.name }}{% else %}Chưa chọn{%
+                    endif %}</p>
+                <p class="mb-0"><strong>Giới hạn mua:</strong> {% if event %}{{ event.purchase_limit }} người{% else
+                    %}Chưa cập nhật{% endif %}</p>
             </div>
         </div>
     </div>
@@ -158,27 +170,32 @@ Chỉnh sửa sự kiện
                             <form method="POST" action="{{ url_for('organizer_edit_ticket', ticket_id=ticket.id) }}">
                                 <select class="form-select" name="ticket_type" required>
                                     {% for type in ticket_types %}
-                                    <option value="{{ type.id }}" {% if type.id == ticket.ticket_type_id %}selected{% endif %}>
+                                    <option value="{{ type.id }}" {% if type.id==ticket.ticket_type_id %}selected{%
+                                        endif %}>
                                         {{ type.name }}
                                     </option>
                                     {% endfor %}
                                 </select>
                         </td>
                         <td>
-                                <input type="number" class="form-control" name="price" value="{{ ticket.price }}" min="0" step="1000" required>
+                            <input type="number" class="form-control" name="price" value="{{ ticket.price }}" min="0"
+                                step="1000" required>
                         </td>
                         <td>
-                                <input type="number" class="form-control" name="quantity" value="{{ ticket.quantity }}" min="0" required>
+                            <input type="number" class="form-control" name="quantity" value="{{ ticket.quantity }}"
+                                min="0" required>
                         </td>
                         <td class="text-center">
-                                <button type="submit" class="btn btn-primary btn-sm me-1">
-                                    <i class="fa-solid fa-floppy-disk"></i>
-                                    Lưu
-                                </button>
-                                <a href="{{ url_for('organizer_delete_ticket', ticket_id=ticket.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc muốn xóa loại vé này?')">
-                                    <i class="fa-solid fa-trash"></i>
-                                    Xóa
-                                </a>
+                            <button type="submit" class="btn btn-primary btn-sm me-1">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                Lưu
+                            </button>
+                            <a href="{{ url_for('organizer_delete_ticket', ticket_id=ticket.id) }}"
+                                class="btn btn-danger btn-sm"
+                                onclick="return confirm('Bạn có chắc muốn xóa loại vé này?')">
+                                <i class="fa-solid fa-trash"></i>
+                                Xóa
+                            </a>
                             </form>
                         </td>
                     </tr>
@@ -193,10 +210,7 @@ Chỉnh sửa sự kiện
         </div>
         {% endif %}
     </div>
-    </div>
 </div>
-{% endif %}
-
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-light">
         <h5 class="mb-0">Voucher của sự kiện</h5>
@@ -231,7 +245,39 @@ Chỉnh sửa sự kiện
             Sự kiện này chưa có voucher nào.
         </div>
         {% endif %}
+
+        <form class="row g-2 mb-4" method="POST" action="{{ url_for('organizer_create_voucher', event_id=event.id) }}">
+            <div class="col-md-3">
+                <label class="form-label">Mã voucher</label>
+                <input type="text" class="form-control" name="code" placeholder="VD: SALE50" required>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Giảm giá (%)</label>
+                <input type="number" class="form-control" name="discount_amount" min="0" max="100" step="1" required>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Số lượng</label>
+                <input type="number" class="form-control" name="quantity" min="1" required>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Hết hạn</label>
+                <input type="date" class="form-control" name="expiration_date" required>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="fa-solid fa-plus"></i>
+                    Thêm
+                </button>
+            </div>
+        </form>
     </div>
+</div>
+{% endif %}
+
 </div>
 
 {% endblock %}

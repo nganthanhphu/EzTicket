@@ -48,7 +48,7 @@
                                 <option value="">Không sử dụng voucher</option>
                                 {% for voucher in vouchers %}
                                 <option value="{{ voucher.id }}" data-discount="{{ voucher.discount_percentage }}">
-                                    {{ voucher.code }} - Giảm {{ voucher.discount_percentage }}%
+                                    {{ voucher.code }} - Giảm {{ voucher.discount_percentage }}% - {{ voucher.quantity }} còn lại
                                     (Hạn sử dụng: {{ voucher.expiration_date.strftime("%d/%m/%Y") }})
                                 </option>
                                 {% endfor %}
