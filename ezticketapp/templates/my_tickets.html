@@ -26,7 +26,11 @@
                 </thead>
                 <tbody>
                     {% for order in orders %}
-                    {% set event_name = order.event_name if order.event_name is defined else '' %}
+                    {% set order_items = order.order_items if order.order_items is defined else [] %}
+                    {% set event_name = '' %}
+                    {% if order_items and order_items[0] and order_items[0].event_ticket and order_items[0].event_ticket.event %}
+                        {% set event_name = order_items[0].event_ticket.event.name %}
+                    {% endif %}
                     <tr>
                         <td>#{{ order.id }}</td>
                         <td>

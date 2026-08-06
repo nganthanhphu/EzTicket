@@ -103,21 +103,9 @@ def register_auth_route(app):
     @app.route("/my-tickets")
     @login_required
     def my_tickets():
-        orders = (
-            Order.query
-            .filter_by(user_id=current_user.id)
-            .order_by(Order.date.desc())
-            .all()
-        )
+        orders = (Order.query.filter_by(user_id=current_user.id).order_by(Order.date.desc()).all())
 
-        for order in orders:
-            event = utils.get_order_event(order)
-            order.event_name = event.name if event else "Không xác định"
-
-        return render_template(
-            "my_tickets.html",
-            orders=orders
-        )
+        return render_template("my_tickets.html", orders=orders)
 
     @app.route("/orders/<int:order_id>/cancel", methods=["POST"])
     @login_required
@@ -135,7 +123,14 @@ def register_auth_route(app):
             flash("Đơn hàng này không thể hủy ở trạng thái hiện tại hoặc đã quá hạn hủy.")
             return redirect(url_for('my_tickets'))
 
-        event = utils.get_order_event(order)
+        order_items = getattr(order, "order_items", None) or []
+        event = None
+
+        if order_items:
+            first_item = order_items[0]
+            event_ticket = getattr(first_item, "event_ticket", None)
+            if event_ticket:
+                event = getattr(event_ticket, "event", None)
 
         if not event:
             flash("Không xác định được sự kiện của đơn hàng.")
