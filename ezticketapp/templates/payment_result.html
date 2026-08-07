@@ -5,7 +5,7 @@
 
 {% block content %}
 <style>
-    .face-scan-svg {
+    .icon-svg {
         width: 130px;
         display: block;
         margin: 0 auto 20px;
@@ -131,7 +131,7 @@
 <div class="container text-center py-5">
     {% if order.status.name == 'PAID' %}
     <div class="mb-4">
-        <svg class="face-scan-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <svg class="icon-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="scan-gradient" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stop-color="#73AF55" stop-opacity="0" />
@@ -214,9 +214,9 @@
         {% endif %}
     </div>
 
-    {% else %}
+    {% elif order.status.name == "CANCELLED" %}
     <div class="mb-4">
-        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
+        <svg class="icon-svg" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
             <circle class="path circle" fill="none" stroke="#D06079" stroke-width="6" stroke-miterlimit="10" cx="65.1"
                 cy="65.1" r="62.1" />
             <line class="path line" fill="none" stroke="#D06079" stroke-width="6" stroke-linecap="round"
