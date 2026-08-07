@@ -180,6 +180,16 @@ Chỉnh sửa sự kiện
                         <td>
                             <input type="number" class="form-control" name="price" value="{{ ticket.price }}" min="0"
                                 step="1000" required>
+                            {% if ticket.suggested_price and ticket.suggested_price != ticket.price %}
+                            <div class="mt-1 p-1 bg-warning-subtle rounded border border-warning">
+                                <small class="text-dark d-block fw-bold" style="font-size: 0.8rem;">
+                                    <i class="fa-solid fa-lightbulb text-warning"></i> Gợi ý giá vé: {{ "{:,.0f}".format(ticket.suggested_price) }} VNĐ
+                                </small>
+                                <small class="text-muted d-block" style="font-size: 0.72rem;">
+                                    (Còn >30% vé & ≤7 ngày đến sự kiện)
+                                </small>
+                            </div>
+                            {% endif %}
                         </td>
                         <td>
                             <input type="number" class="form-control" name="quantity" value="{{ ticket.quantity }}"

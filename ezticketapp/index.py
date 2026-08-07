@@ -121,12 +121,16 @@ def register_auth_route(app):
 
         if request.method == "POST":
             image_file = request.files.get("image")
-            res = cloudinary.uploader.upload(image_file)
-            image_url = res.get("url")
+            image_url = None
 
-            if image_file and image_file.filename and not image_url:
-                flash("Tải ảnh lên thất bại.")
-                return render_template("organizer/event_edit.html", event=None, event_types=event_types, mode="create")
+            if image_file and image_file.filename:
+                try:
+                    res = cloudinary.uploader.upload(image_file)
+                    image_url = res.get("url")
+                except Exception as e:
+                    print(e)
+                    flash("Tải ảnh lên thất bại.")
+                    return render_template("organizer/event_edit.html", event=None, event_types=event_types, mode="create")
 
             success, message = dao.create_event(
                 name=request.form.get("name"),
@@ -160,6 +164,8 @@ def register_auth_route(app):
             return redirect(url_for("organizer_events"))
 
         tickets = dao.load_event_tickets(event.id)
+        for t in tickets:
+            t.suggested_price = dao.suggest_ticket_price(t.id)
         vouchers = dao.load_event_vouchers(event.id)
         return render_template(
             "organizer/event_detail.html",
@@ -199,6 +205,8 @@ def register_auth_route(app):
                 return redirect(url_for("organizer_event_detail", event_id=event.id))
 
         tickets = dao.load_event_tickets(event.id)
+        for t in tickets:
+            t.suggested_price = dao.suggest_ticket_price(t.id)
         vouchers = dao.load_event_vouchers(event.id)
         ticket_types = dao.get_ticket_types()
         event_types = dao.get_event_types()
@@ -238,6 +246,12 @@ def register_auth_route(app):
         if ticket is None:
             flash("Không tìm thấy vé.")
             return redirect(url_for("organizer_events"))
+
+        event = dao.get_event_by_id(ticket.event_id)
+        if event is None or event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("organizer_events"))
+
         if request.method == "POST":
             image_file = request.files.get("image")
             image_url = None
@@ -245,10 +259,6 @@ def register_auth_route(app):
             if image_file and image_file.filename:
                 res = cloudinary.uploader.upload(image_file)
                 image_url = res.get("secure_url")
-                event = dao.get_event_by_id(ticket.event_id)
-        if event is None or event.organizer_id != current_user.id:
-            flash("Bạn không có quyền.")
-            return redirect(url_for("organizer_events"))
 
         success, message = dao.update_event_ticket(
             ticket.id,
@@ -450,6 +460,7 @@ def register_auth_route(app):
 def register_order_routes(app):
 
     @app.route("/events/<int:event_id>/order", methods=["GET", "POST"])
+    @login_required
     def ticket_order(event_id):
         event = dao.get_event_by_id(event_id)
         max_available_tickets = 0

@@ -415,43 +415,45 @@ def update_event(event, form, image_url=None):
         return False, "Không thể cập nhật"
 
 
-    #lay so ve da ban cua 1 su kien
-    def get_total_sold_ticket(event_id):
-        return (
-            db.session.query(func.sum(OrderItem.quantity))
-            .join(Order, Order.id == OrderItem.order_id)
-            .join(EventTicket, EventTicket.id == OrderItem.event_ticket_id)
-            .filter(
-                EventTicket.event_id == event_id,
-            Order.status.in_(OrderStatus.COMPLETED)
+# Lay so ve da ban cua 1 su kien
+def get_total_sold_ticket(ticket_id):
+    return (
+        db.session.query(func.sum(OrderItem.quantity))
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(
+            OrderItem.event_ticket_id == ticket_id,
+            Order.status == OrderStatus.COMPLETED
         )
         .scalar()
         or 0
     )
 
 
-    #ham goi y gia ve cho nha to chuc
-    def suggest_ticket_price(event_id):
-        ticket = get_event_ticket(event_id)
+# Ham goi y gia ve cho nha to chuc
+def suggest_ticket_price(ticket_id):
+    ticket = get_event_ticket(ticket_id)
+    if ticket is None:
+        return None
 
-        if ticket is None:
-            return None
-
-        event = get_event_by_id(event_id)
-
-        total_ticket = ticket.quantity
-        total_sold = get_total_sold_ticket(event_id)
-
-        remaining_percent = ((total_ticket - total_sold) / total_ticket) * 100
-        days_left = (event.time - datetime.now()).days
-
-        # Con hon 30 phan tram con duoi 7 ngay thi 30%
-        if remaining_percent > 30 and days_left <= 7:
-            return ticket.price * 0.7
-
+    event = get_event_by_id(ticket.event_id)
+    if not event or not event.time:
         return ticket.price
-    
-    
 
+    total_sold = get_total_sold_ticket(ticket_id)
+    total_ticket = ticket.quantity + total_sold
+
+    if total_ticket <= 0:
+        return ticket.price
+
+    remaining_percent = (ticket.quantity / total_ticket) * 100
+    days_left = (event.time - datetime.now()).days
+
+    # Con hon 30% ve va con duoi 7 ngay -> Goi y giam 30% gia ve
+    if remaining_percent > 30 and 0 <= days_left <= 7:
+        return round(ticket.price * 0.7, -3)
         
-        
+    # Con hon 30% ve va con duoi  20 ngay -> Goi y giam 30% gia ve
+    if remaining_percent > 30 and 0 <= days_left <= 20:
+        return round(ticket.price * 0.85, -3)
+    
+    return ticket.price

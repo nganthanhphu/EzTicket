@@ -221,6 +221,12 @@ Chi tiết sự kiện
                     {{ "{:,.0f}".format(ticket.price) }}
 
                     VNĐ
+                    {% if ticket.suggested_price and ticket.suggested_price != ticket.price %}
+                    <br>
+                    <small class="badge bg-warning text-dark mt-1">
+                        <i class="fa-solid fa-lightbulb"></i> Gợi ý: {{ "{:,.0f}".format(ticket.suggested_price) }} VNĐ
+                    </small>
+                    {% endif %}
 
                 </td>
 
