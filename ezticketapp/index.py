@@ -106,6 +106,17 @@ def register_auth_route(app):
         events = dao.load_my_events()
         return render_template("organizer/dashboard.html", total_events=len(events))
 
+    @app.route("/organizer/events/<int:event_id>/delete", methods=["GET", "POST", "DELETE"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_delete_event(event_id):
+        success, message = dao.delete_event(event_id)
+        flash(message)
+        return redirect(url_for("organizer_events"))
+
+
+
+
     @app.route("/organizer/events")
     @login_required
     @role_required("ORGANIZER")
@@ -237,6 +248,15 @@ def register_auth_route(app):
         )
         flash(message)
         return redirect(url_for("organizer_edit_event", event_id=event_id))
+    
+
+
+
+
+
+
+
+
 
     @app.route("/organizer/tickets/<int:ticket_id>/edit", methods=["POST"])
     @login_required

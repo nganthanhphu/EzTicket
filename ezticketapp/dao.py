@@ -457,3 +457,31 @@ def suggest_ticket_price(ticket_id):
         return round(ticket.price * 0.85, -3)
     
     return ticket.price
+
+def has_order(event_id):
+    return (
+        db.session.query(Order.id)
+        .join(OrderItem, Order.id == OrderItem.order_id)
+        .join(EventTicket, EventTicket.id == OrderItem.event_ticket_id)
+        .filter(
+            EventTicket.event_id == event_id,
+            Order.status != OrderStatus.CANCELLED
+        )
+        .first()
+        is not None
+    )
+def delete_event(event_id):
+    event = get_event_by_id(event_id)
+    if event is None:
+        return False, "Không tìm thấy sự kiện"
+
+    if has_order(event_id):
+        return False, "Không thể xóa sự kiện đã có đã bán được vé"
+    
+    try:
+        db.session.delete(event)
+        db.session.commit()
+        return True, "Đã xóa"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể xóa"

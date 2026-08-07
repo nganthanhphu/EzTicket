@@ -30,75 +30,76 @@ Quản lý sự kiện
 
     <thead>
 
-    <tr>
+        <tr>
 
-        <th>
+            <th>
 
-            Tên
+                Tên
 
-        </th>
+            </th>
 
-        <th>
+            <th>
 
-            Ngày
+                Ngày
 
-        </th>
+            </th>
 
-        <th>
+            <th>
 
-            Địa điểm
+                Địa điểm
 
-        </th>
+            </th>
 
-        <th>
+            <th>
 
-        </th>
+            </th>
 
-    </tr>
+        </tr>
 
     </thead>
 
     <tbody>
 
-    {% for e in events %}
+        {% for e in events %}
 
-    <tr>
+        <tr>
 
-        <td>
+            <td>
 
-            {{ e.name }}
+                {{ e.name }}
 
-        </td>
+            </td>
 
-        <td>
+            <td>
 
-            {{ e.time.strftime("%d/%m/%Y") }}
+                {{ e.time.strftime("%d/%m/%Y") }}
 
-        </td>
+            </td>
 
-        <td>
+            <td>
 
-            {{ e.location }}
+                {{ e.location }}
 
-        </td>
+            </td>
 
-        <td>
+            <td>
+                <a class="btn btn-danger" href="{{ url_for('organizer_delete_event', event_id=e.id) }}"
+                    onclick="return confirm('Bạn có chắc chắn muốn xóa sự kiện này không?');">
+                    Xóa
+                </a>
 
-            <a
-                    class="btn btn-primary"
-
-                    href="{{ url_for('organizer_event_detail',
+                <a class="btn btn-primary" href="{{ url_for('organizer_event_detail',
 event_id=e.id) }}">
 
-                Xem
+                    Xem
 
-            </a>
+                </a>
 
-        </td>
+            </td>
 
-    </tr>
+        </tr>
 
-    {% endfor %}
+        {% endfor %}
 
     </tbody>
 
