@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import os
+from datetime import datetime
 
 import cloudinary
 from PIL import Image
@@ -105,6 +106,17 @@ def register_auth_route(app):
         events = dao.load_my_events()
         return render_template("organizer/dashboard.html", total_events=len(events))
 
+    @app.route("/organizer/events/<int:event_id>/delete", methods=["GET", "POST", "DELETE"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_delete_event(event_id):
+        success, message = dao.delete_event(event_id)
+        flash(message)
+        return redirect(url_for("organizer_events"))
+
+
+
+
     @app.route("/organizer/events")
     @login_required
     @role_required("ORGANIZER")
@@ -120,12 +132,16 @@ def register_auth_route(app):
 
         if request.method == "POST":
             image_file = request.files.get("image")
-            res = cloudinary.uploader.upload(image_file)
-            image_url = res.get("url")
+            image_url = None
 
-            if image_file and image_file.filename and not image_url:
-                flash("Tải ảnh lên thất bại.")
-                return render_template("organizer/event_edit.html", event=None, event_types=event_types, mode="create")
+            if image_file and image_file.filename:
+                try:
+                    res = cloudinary.uploader.upload(image_file)
+                    image_url = res.get("url")
+                except Exception as e:
+                    print(e)
+                    flash("Tải ảnh lên thất bại.")
+                    return render_template("organizer/event_edit.html", event=None, event_types=event_types, mode="create")
 
             success, message = dao.create_event(
                 name=request.form.get("name"),
@@ -159,6 +175,8 @@ def register_auth_route(app):
             return redirect(url_for("organizer_events"))
 
         tickets = dao.load_event_tickets(event.id)
+        for t in tickets:
+            t.suggested_price = dao.suggest_ticket_price(t.id)
         vouchers = dao.load_event_vouchers(event.id)
         return render_template(
             "organizer/event_detail.html",
@@ -182,9 +200,12 @@ def register_auth_route(app):
 
         if request.method == "POST":
             image_file = request.files.get("image")
-            res = cloudinary.uploader.upload(image_file)
-            image_url = res.get("url")
+            image_url = None
 
+            if image_file and image_file.filename:
+                res = cloudinary.uploader.upload(image_file)
+                image_url = res.get("secure_url")
+        
             if image_file and image_file.filename and not image_url:
                 flash("Tải ảnh lên thất bại.")
                 return redirect(url_for("organizer_edit_event", event_id=event.id))
@@ -195,6 +216,8 @@ def register_auth_route(app):
                 return redirect(url_for("organizer_event_detail", event_id=event.id))
 
         tickets = dao.load_event_tickets(event.id)
+        for t in tickets:
+            t.suggested_price = dao.suggest_ticket_price(t.id)
         vouchers = dao.load_event_vouchers(event.id)
         ticket_types = dao.get_ticket_types()
         event_types = dao.get_event_types()
@@ -225,6 +248,15 @@ def register_auth_route(app):
         )
         flash(message)
         return redirect(url_for("organizer_edit_event", event_id=event_id))
+    
+
+
+
+
+
+
+
+
 
     @app.route("/organizer/tickets/<int:ticket_id>/edit", methods=["POST"])
     @login_required
@@ -239,6 +271,14 @@ def register_auth_route(app):
         if event is None or event.organizer_id != current_user.id:
             flash("Bạn không có quyền.")
             return redirect(url_for("organizer_events"))
+
+        if request.method == "POST":
+            image_file = request.files.get("image")
+            image_url = None
+
+            if image_file and image_file.filename:
+                res = cloudinary.uploader.upload(image_file)
+                image_url = res.get("secure_url")
 
         success, message = dao.update_event_ticket(
             ticket.id,
@@ -266,6 +306,63 @@ def register_auth_route(app):
         success, message = dao.delete_event_ticket(ticket_id)
         flash(message)
         return redirect(url_for("organizer_edit_event", event_id=ticket.event_id))
+
+    
+    @app.route("/organizer/events/<int:event_id>/vouchers/create", methods=["POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_create_voucher(event_id):
+        event = dao.get_event_by_id(event_id)
+
+        if event is None or event.organizer_id != current_user.id:
+            flash("Bạn không có quyền.")
+            return redirect(url_for("organizer_events"))
+        #lấy input từ form
+        code = (request.form.get("code") or "").strip().upper()
+        discount = float(request.form.get("discount_amount", 0))
+        quantity = int(request.form.get("quantity", 0))
+        expiration_date_text = request.form.get("expiration_date")
+        #bắt buộc nhập mã voucher và ngày hết hạn
+        if not code or not expiration_date_text:
+            flash("Vui lòng nhập mã voucher và ngày hết hạn.")
+            return redirect(url_for("organizer_edit_event", event_id=event_id))
+
+        voucher_quantity=int(request.form.get("quantity", 0))
+        tickets= dao.load_event_tickets(event_id)
+        event_tickets_quantity = sum(ticket.quantity for ticket in tickets)
+
+        #số lượng voucher hok đc nhiều hơn số lượng vé sự kiện đó
+        if(discount <= 1 or discount > 100):
+            flash("Giảm giá phải lớn hơn 0 và nhỏ hơn hoặc bằng 100.")
+            return redirect(url_for("organizer_edit_event", event_id=event_id))
+        if voucher_quantity > event_tickets_quantity or voucher_quantity <= 0:
+            flash("Số lượng voucher không được vượt quá số lượng vé hoặc không được nhỏ hơn 0.")
+            return redirect(url_for("organizer_edit_event", event_id=event_id)) 
+        if datetime.strptime(expiration_date_text, "%Y-%m-%d") < datetime.now():
+            flash("Ngày hết hạn không được nhỏ hơn ngày hiện tại.")
+            return redirect(url_for("organizer_edit_event", event_id=event_id))
+        try:
+            expiration_date = datetime.strptime(expiration_date_text, "%Y-%m-%d")
+        except ValueError:
+            flash("Ngày hết hạn không hợp lệ.")
+            return redirect(url_for("organizer_edit_event", event_id=event_id))
+
+        success, message = dao.create_voucher(
+            event_id,
+            code,
+            discount,
+            quantity,
+            expiration_date,
+        )
+
+        flash(message)
+        return redirect(url_for("organizer_edit_event", event_id=event_id)) 
+
+
+
+
+
+
 
     @app.route("/api/register", methods=["POST"])
     def api_register():
@@ -383,6 +480,7 @@ def register_auth_route(app):
 def register_order_routes(app):
 
     @app.route("/events/<int:event_id>/order", methods=["GET", "POST"])
+    @login_required
     def ticket_order(event_id):
         event = dao.get_event_by_id(event_id)
         max_available_tickets = 0
@@ -434,6 +532,11 @@ def register_order_routes(app):
                         event_ticket_id=ticket.id, quantity=quantity)
                     total_price += quantity * ticket.price
                     order_items.append(item)
+            #cho thang momo lay gia sau khi app voucher neu co
+            if voucher_id:
+                voucher = dao.get_voucher(voucher_id)
+                if voucher:
+                    total_price = total_price * (1 - voucher.discount_percentage / 100)
 
             if order_items:
                 try:
@@ -441,6 +544,7 @@ def register_order_routes(app):
                         order = dao.add_order(
                             user_id=current_user.id,
                             event_id=event_id,
+                            order_items=order_items,
                             total_price=total_price,
                             voucher_id=voucher_id,
                             payment_method_id=payment_method_id
