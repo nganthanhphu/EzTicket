@@ -156,7 +156,7 @@ def count_ordered_tickets(user_id, event_id):
     count = db.session.query(func.sum(OrderItem.quantity)).join(OrderItem.order).join(OrderItem.event_ticket).filter(
         Order.user_id == user_id,
         EventTicket.event_id == event_id,
-        Order.status == OrderStatus.COMPLETED
+        Order.status.in_([OrderStatus.PAID, OrderStatus.COMPLETED])
     ).scalar()
     return count or 0
 
@@ -422,7 +422,7 @@ def get_total_sold_ticket(ticket_id):
         .join(Order, Order.id == OrderItem.order_id)
         .filter(
             OrderItem.event_ticket_id == ticket_id,
-            Order.status == OrderStatus.COMPLETED
+            Order.status.in_([OrderStatus.PAID, OrderStatus.COMPLETED])
         )
         .scalar()
         or 0

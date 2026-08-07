@@ -684,7 +684,7 @@ def register_payment_routes(app):
                     with db.session.begin_nested():
                         if ipn.get("resultCode") == 0:
                             dao.update_order(
-                                order_id, status=OrderStatus.COMPLETED)
+                                order_id, status=OrderStatus.PAID)
                         else:
                             dao.update_order(
                                 order_id, status=OrderStatus.CANCELLED)
