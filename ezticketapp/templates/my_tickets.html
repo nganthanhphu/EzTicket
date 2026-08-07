@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Vé của tôi - EzTicket{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card p-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Vé của tôi</h2>
+            <a href="{{ url_for('home') }}" class="btn btn-primary">Về trang chủ</a>
+        </div>
+
+        {% if not orders %}
+        <div class="alert alert-info">Bạn chưa có đơn hàng nào.</div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Sự kiện</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th>Hủy vé</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    {% set order_items = order.order_items if order.order_items is defined else [] %}
+                    {% set event_name = '' %}
+                    {% if order_items and order_items[0] and order_items[0].event_ticket and
+                    order_items[0].event_ticket.event %}
+                    {% set event_name = order_items[0].event_ticket.event.name %}
+                    {% endif %}
+                    <tr>
+                        <td>#{{ order.id }}</td>
+                        <td>
+                            <div><strong>{{ event_name }}</strong></div>
+                            <div class="small text-muted">{{ order.date.strftime('%d/%m/%Y %H:%M') }}</div>
+                        </td>
+                        <td>{{ '{:,.0f}'.format(order.total_price) }} VND</td>
+                        <td>
+                            {% if order.status.name == 'COMPLETED' %}
+                            <span class="badge bg-success">COMPLETED</span>
+                            {% elif order.status.name == 'PENDING' %}
+                            <span class="badge bg-warning text-dark">PENDING</span>
+                            {% elif order.status.name == 'CANCELLED' %}
+                            <span class="badge bg-secondary">CANCELLED</span>
+                            {% elif order.status.name == 'PAID' %}
+                            <span class="badge bg-primary">PAID</span>
+                            {% else %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.status.name == 'PAID' %}
+                            <form method="post" action="{{ url_for('cancel_order', order_id=order.id) }}"
+                                onsubmit="return confirm('Bạn có chắc chắn muốn hủy vé này không?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Hủy vé</button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted">Không khả dụng</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

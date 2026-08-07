@@ -17,10 +17,12 @@
     <div class="user-actions">
         {% if current_user.is_authenticated and current_user.role.name == "CUSTOMER" %}
         <div class="action-item">
-            <div class="icon-circle white-bg">
-                <i class="fa-solid fa-ticket ticket-icon"></i>
-            </div>
-            <span class="action-text">Vé của tôi</span>
+            <a href="{{ url_for('my_tickets') }}" class="d-flex align-items-center text-decoration-none text-white">
+                <div class="icon-circle white-bg">
+                    <i class="fa-solid fa-ticket ticket-icon"></i>
+                </div>
+                <span class="action-text">Vé của tôi</span>
+            </a>
         </div>
         {% endif %}
         <div class="action-item">
