@@ -65,7 +65,7 @@ class Event(BaseModel):
         'event_type.id'), nullable=False)
     organizer_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     organizer = relationship("User", uselist=False)
-    tickets = relationship("EventTicket", backref="event", lazy=True)
+    tickets = relationship("EventTicket", backref="event", lazy=True, cascade="all, delete-orphan")
 
 
 class EventTicket(BaseModel):
@@ -111,7 +111,7 @@ class Voucher(BaseModel):
     discount_percentage = Column(Float, nullable=False)
     expiration_date = Column(DateTime, nullable=False)
     quantity = Column(Integer, nullable=False)
-    event_id = Column(Integer, ForeignKey('event.id'), nullable=False)
+    event_id = Column(Integer, ForeignKey('event.id', ondelete='CASCADE'), nullable=False)
 
 
 class PaymentMethod(BaseModel):
