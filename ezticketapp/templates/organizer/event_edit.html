@@ -178,15 +178,22 @@ Chỉnh sửa sự kiện
                                 </select>
                         </td>
                         <td>
-                            <input type="number" class="form-control" name="price" value="{{ ticket.price }}" min="0"
+                            <input type="number" class="form-control ticket-price-input-{{ ticket.id }}" name="price" value="{{ ticket.price }}" min="0"
                                 step="1000" required>
                             {% if ticket.suggested_price and ticket.suggested_price != ticket.price %}
-                            <div class="mt-1 p-1 bg-warning-subtle rounded border border-warning">
-                                <small class="text-dark d-block fw-bold" style="font-size: 0.8rem;">
-                                    <i class="fa-solid fa-lightbulb text-warning"></i> Gợi ý giá vé: {{ "{:,.0f}".format(ticket.suggested_price) }} VNĐ
-                                </small>
+                            {% set discount_percent = ((1 - ticket.suggested_price / ticket.price) * 100) | round | int %}
+                            <div class="mt-1 p-2 bg-warning-subtle rounded border border-warning">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-dark fw-bold" style="font-size: 0.8rem;">
+                                        <i class="fa-solid fa-lightbulb text-warning me-1"></i> Gợi ý: {{ "{:,.0f}".format(ticket.suggested_price) }} VNĐ
+                                    </small>
+                                    <button type="button" class="btn btn-warning btn-sm py-0 px-2 fw-bold text-dark" style="font-size: 0.75rem;"
+                                            onclick="document.querySelector('.ticket-price-input-{{ ticket.id }}').value = '{{ ticket.suggested_price | int }}';">
+                                        <i class="fa-solid fa-check me-1"></i> Lấy giá gợi ý
+                                    </button>
+                                </div>
                                 <small class="text-muted d-block" style="font-size: 0.72rem;">
-                                    (Còn >30% vé & ≤7 ngày đến sự kiện)
+                                    (Giảm {{ discount_percent }}% chia từ giá gốc {{ "{:,.0f}".format(ticket.price) }} VNĐ)
                                 </small>
                             </div>
                             {% endif %}
@@ -258,34 +265,97 @@ Chỉnh sửa sự kiện
 
         <form class="row g-2 mb-4" method="POST" action="{{ url_for('organizer_create_voucher', event_id=event.id) }}">
             <div class="col-md-3">
-                <label class="form-label">Mã voucher</label>
+                <label class="form-label fw-semibold">Mã voucher</label>
                 <input type="text" class="form-control" name="code" placeholder="VD: SALE50" required>
             </div>
 
             <div class="col-md-3">
-                <label class="form-label">Giảm giá (%)</label>
-                <input type="number" class="form-control" name="discount_amount" min="0" max="100" step="1" required>
+                <label class="form-label fw-semibold">Giảm giá (%)</label>
+                <input type="number" class="form-control" id="voucher_discount_input" name="discount_amount" min="0" max="100" step="1" required placeholder="Nhập %">
+                <div class="mt-1">
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">Gợi ý % chọn nhanh:</small>
+                    <div class="btn-group btn-group-sm flex-wrap mt-1" role="group">
+                        <button type="button" class="btn btn-outline-primary py-0 px-1" style="font-size: 0.75rem;" onclick="setVoucherDiscount(10)">10%</button>
+                        <button type="button" class="btn btn-outline-primary py-0 px-1" style="font-size: 0.75rem;" onclick="setVoucherDiscount(15)">15%</button>
+                        <button type="button" class="btn btn-outline-primary py-0 px-1" style="font-size: 0.75rem;" onclick="setVoucherDiscount(20)">20%</button>
+                        <button type="button" class="btn btn-outline-primary py-0 px-1" style="font-size: 0.75rem;" onclick="setVoucherDiscount(30)">30%</button>
+                        <button type="button" class="btn btn-outline-primary py-0 px-1" style="font-size: 0.75rem;" onclick="setVoucherDiscount(50)">50%</button>
+                    </div>
+                </div>
             </div>
 
             <div class="col-md-2">
-                <label class="form-label">Số lượng</label>
+                <label class="form-label fw-semibold">Số lượng</label>
                 <input type="number" class="form-control" name="quantity" min="1" required>
             </div>
 
             <div class="col-md-2">
-                <label class="form-label">Hết hạn</label>
+                <label class="form-label fw-semibold">Hết hạn</label>
                 <input type="date" class="form-control" name="expiration_date" required>
             </div>
 
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-start pt-4">
                 <button type="submit" class="btn btn-success w-100">
-                    <i class="fa-solid fa-plus"></i>
-                    Thêm
+                    <i class="fa-solid fa-plus"></i> Thêm
                 </button>
+            </div>
+
+            <div class="col-12 mt-2">
+                <div class="p-2 bg-light rounded border small">
+                    <span class="fw-bold text-dark"><i class="fa-solid fa-calculator text-primary me-1"></i> Xem trước giá gợi ý sau giảm (tính chia % từ giá gốc từng loại vé):</span>
+                    <div id="voucher-discount-preview" class="text-muted mt-1">
+                        {% if tickets %}
+                            {% for ticket in tickets %}
+                            <div class="voucher-ticket-preview" data-price="{{ ticket.price }}">
+                                • <strong>{{ ticket.ticket_type.name }}</strong>: Giá gốc {{ "{:,.0f}".format(ticket.price) }} VNĐ <span class="calc-result text-success fw-bold"></span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            Chưa có loại vé nào để xem trước giá gợi ý.
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    function setVoucherDiscount(percent) {
+        const input = document.getElementById('voucher_discount_input');
+        if (input) {
+            input.value = percent;
+            updateVoucherDiscountPreview();
+        }
+    }
+
+    function updateVoucherDiscountPreview() {
+        const input = document.getElementById('voucher_discount_input');
+        const percent = parseFloat(input?.value) || 0;
+        document.querySelectorAll('.voucher-ticket-preview').forEach(item => {
+            const price = parseFloat(item.dataset.price) || 0;
+            const resSpan = item.querySelector('.calc-result');
+            if (resSpan) {
+                if (percent > 0) {
+                    const discount = price * percent / 100;
+                    const finalP = price - discount;
+                    const fmtFinal = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(finalP);
+                    const fmtSaving = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discount);
+                    resSpan.innerHTML = `➔ Giá gợi ý sau giảm: ${fmtFinal} (Tiết kiệm ${fmtSaving})`;
+                } else {
+                    resSpan.innerHTML = '';
+                }
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('voucher_discount_input');
+        if (input) {
+            input.addEventListener('input', updateVoucherDiscountPreview);
+        }
+    });
+</script>
 {% endif %}
 
 </div>

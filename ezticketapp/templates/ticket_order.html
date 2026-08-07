@@ -34,9 +34,10 @@
 
                         {% for ticket in event.tickets %}
                         <div class="d-flex justify-content-between mb-2">
-                            <p class="mb-0">{{ ticket.ticket_type.name }} - <span class="text-danger">{{ '{:,.0f}'.format(ticket.price) }} VND</span></p>
-                            <input type="number" name="ticket_{{ ticket.id }}" class="form-control w-25 ticket-input" min="0"
-                                max="{{ ticket.quantity }}" value="0" data-price="{{ ticket.price }}">
+                            <p class="mb-0">{{ ticket.ticket_type.name }} - <span class="text-danger">{{
+                                    '{:,.0f}'.format(ticket.price) }} VND</span></p>
+                            <input type="number" name="ticket_{{ ticket.id }}" class="form-control w-25 ticket-input"
+                                min="0" max="{{ ticket.quantity }}" value="0" data-price="{{ ticket.price }}">
                         </div>
                         {% endfor %}
 
@@ -48,7 +49,8 @@
                                 <option value="">Không sử dụng voucher</option>
                                 {% for voucher in vouchers %}
                                 <option value="{{ voucher.id }}" data-discount="{{ voucher.discount_percentage }}">
-                                    {{ voucher.code }} - Giảm {{ voucher.discount_percentage }}% - {{ voucher.quantity }} còn lại
+                                    {{ voucher.code }} - Giảm {{ voucher.discount_percentage }}% - {{ voucher.quantity
+                                    }} còn lại
                                     (Hạn sử dụng: {{ voucher.expiration_date.strftime("%d/%m/%Y") }})
                                 </option>
                                 {% endfor %}
