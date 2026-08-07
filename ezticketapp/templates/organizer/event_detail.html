@@ -20,8 +20,7 @@ Chi tiết sự kiện
 
     <div>
 
-        <a class="btn btn-warning"
-           href="{{ url_for('organizer_edit_event',
+        <a class="btn btn-warning" href="{{ url_for('organizer_edit_event',
            event_id=event.id) }}">
 
             <i class="fa-solid fa-pen"></i>
@@ -50,9 +49,7 @@ Chi tiết sự kiện
 
             <div class="col-md-4">
 
-                <img
-                        src="{{ event.image }}"
-                        class="img-fluid rounded">
+                <img src="{{ event.image }}" class="img-fluid rounded">
 
             </div>
 
@@ -180,59 +177,66 @@ Chi tiết sự kiện
 
             <thead>
 
-            <tr>
+                <tr>
 
-                <th>
+                    <th>
 
-                    Loại vé
+                        Loại vé
 
-                </th>
+                    </th>
 
-                <th>
+                    <th>
 
-                    Giá
+                        Giá
 
-                </th>
+                    </th>
 
-                <th>
+                    <th>
 
-                    Số lượng
+                        Số lượng
 
-                </th>
+                    </th>
 
-            </tr>
+                </tr>
 
             </thead>
 
             <tbody>
 
-            {% for ticket in tickets %}
+                {% for ticket in tickets %}
 
-            <tr>
+                <tr>
 
-                <td>
+                    <td>
 
-                    {{ ticket.ticket_type.name }}
+                        {{ ticket.ticket_type.name }}
 
-                </td>
+                    </td>
 
-                <td>
+                    <td>
 
-                    {{ "{:,.0f}".format(ticket.price) }}
+                        {{ "{:,.0f}".format(ticket.price) }}
 
-                    VNĐ
+                        VNĐ
+                        {% if ticket.suggested_price and ticket.suggested_price != ticket.price %}
+                        <br>
+                        <small class="badge bg-warning text-dark mt-1">
+                            <i class="fa-solid fa-lightbulb"></i> Gợi ý: {{ "{:,.0f}".format(ticket.suggested_price) }}
+                            VNĐ
+                        </small>
+                        {% endif %}
 
-                </td>
+                    </td>
 
-                <td>
+                    <td>
 
-                    {{ ticket.quantity }}
+                        {{ ticket.quantity }}
 
-                </td>
+                    </td>
 
-            </tr>
+                </tr>
 
-            {% endfor %}
+                {% endfor %}
 
             </tbody>
 
@@ -256,69 +260,69 @@ Chi tiết sự kiện
 
             <thead>
 
-            <tr>
+                <tr>
 
-                <th>
+                    <th>
 
-                    Code
+                        Mã Voucher
 
-                </th>
+                    </th>
 
-                <th>
+                    <th>
 
-                    %
+                        % Giảm (trên giá gốc)
 
-                </th>
+                    </th>
 
-                <th>
+                    <th>
 
-                    SL
+                        SL
 
-                </th>
+                    </th>
 
-                <th>
+                    <th>
 
-                    Hết hạn
+                        Hết hạn
 
-                </th>
+                    </th>
 
-            </tr>
+                </tr>
 
             </thead>
 
             <tbody>
 
-            {% for v in vouchers %}
+                {% for v in vouchers %}
 
-            <tr>
+                <tr>
 
-                <td>
+                    <td>
 
-                    {{ v.code }}
+                        {{ v.code }}
 
-                </td>
+                    </td>
 
-                <td>
+                    <td>
 
-                    {{ v.discount_percentage }} %
+                        {{ v.discount_percentage }} %
 
-                </td>
+                    </td>
 
-                <td>
+                    <td>
 
-                    {{ v.quantity }}
+                        {{ v.quantity }}
 
-                </td>
+                    </td>
 
-                <td>
+                    <td>
 
-                    {{ v.expiration_date.strftime("%d/%m/%Y") }}
+                        {{ v.expiration_date.strftime("%d/%m/%Y") }}
 
-                </td>
+                    </td>
 
-            </tr>
+                </tr>
 
-            {% endfor %}
+                {% endfor %}
 
             </tbody>
 

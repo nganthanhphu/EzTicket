@@ -413,3 +413,75 @@ def update_event(event, form, image_url=None):
     except Exception:
         db.session.rollback()
         return False, "Không thể cập nhật"
+
+
+# Lay so ve da ban cua 1 su kien
+def get_total_sold_ticket(ticket_id):
+    return (
+        db.session.query(func.sum(OrderItem.quantity))
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(
+            OrderItem.event_ticket_id == ticket_id,
+            Order.status == OrderStatus.COMPLETED
+        )
+        .scalar()
+        or 0
+    )
+
+
+# Ham goi y gia ve cho nha to chuc
+def suggest_ticket_price(ticket_id):
+    ticket = get_event_ticket(ticket_id)
+    if ticket is None:
+        return None
+
+    event = get_event_by_id(ticket.event_id)
+    if not event or not event.time:
+        return ticket.price
+
+    total_sold = get_total_sold_ticket(ticket_id)
+    total_ticket = ticket.quantity + total_sold
+
+    if total_ticket <= 0:
+        return ticket.price
+
+    remaining_percent = (ticket.quantity / total_ticket) * 100
+    days_left = (event.time - datetime.now()).days
+
+    # Con hon 30% ve va con duoi 7 ngay -> Goi y giam 30% gia ve
+    if remaining_percent > 30 and 0 <= days_left <= 7:
+        return round(ticket.price * 0.7, -3)
+        
+    # Con hon 30% ve va con duoi  20 ngay -> Goi y giam 30% gia ve
+    if remaining_percent > 30 and 0 <= days_left <= 20:
+        return round(ticket.price * 0.85, -3)
+    
+    return ticket.price
+
+def has_order(event_id):
+    return (
+        db.session.query(Order.id)
+        .join(OrderItem, Order.id == OrderItem.order_id)
+        .join(EventTicket, EventTicket.id == OrderItem.event_ticket_id)
+        .filter(
+            EventTicket.event_id == event_id,
+            Order.status != OrderStatus.CANCELLED
+        )
+        .first()
+        is not None
+    )
+def delete_event(event_id):
+    event = get_event_by_id(event_id)
+    if event is None:
+        return False, "Không tìm thấy sự kiện"
+
+    if has_order(event_id):
+        return False, "Không thể xóa sự kiện đã có đã bán được vé"
+    
+    try:
+        db.session.delete(event)
+        db.session.commit()
+        return True, "Đã xóa"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể xóa"
