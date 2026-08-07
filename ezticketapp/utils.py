@@ -184,7 +184,7 @@ def can_cancel_order(order, current_time=None):
     current_time = current_time or datetime.datetime.now()
 
     status_value = getattr(order.status, "value", order.status)
-    if status_value != OrderStatus.COMPLETED.value:
+    if status_value != OrderStatus.PAID.value:
         return False
 
     if not getattr(order, "order_items", None):
@@ -197,5 +197,5 @@ def can_cancel_order(order, current_time=None):
     if event.time <= current_time:
         return False
 
-    deadline = event.time - datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
+    deadline = order.date + datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
     return current_time <= deadline

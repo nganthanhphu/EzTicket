@@ -28,8 +28,9 @@
                     {% for order in orders %}
                     {% set order_items = order.order_items if order.order_items is defined else [] %}
                     {% set event_name = '' %}
-                    {% if order_items and order_items[0] and order_items[0].event_ticket and order_items[0].event_ticket.event %}
-                        {% set event_name = order_items[0].event_ticket.event.name %}
+                    {% if order_items and order_items[0] and order_items[0].event_ticket and
+                    order_items[0].event_ticket.event %}
+                    {% set event_name = order_items[0].event_ticket.event.name %}
                     {% endif %}
                     <tr>
                         <td>#{{ order.id }}</td>
@@ -45,11 +46,15 @@
                             <span class="badge bg-warning text-dark">PENDING</span>
                             {% elif order.status.name == 'CANCELLED' %}
                             <span class="badge bg-secondary">CANCELLED</span>
+                            {% elif order.status.name == 'PAID' %}
+                            <span class="badge bg-primary">PAID</span>
+                            {% else %}
                             {% endif %}
                         </td>
                         <td>
-                            {% if order.status.name == 'COMPLETED' %}
-                            <form method="post" action="{{ url_for('cancel_order', order_id=order.id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn hủy vé này không?');">
+                            {% if order.status.name == 'PAID' %}
+                            <form method="post" action="{{ url_for('cancel_order', order_id=order.id) }}"
+                                onsubmit="return confirm('Bạn có chắc chắn muốn hủy vé này không?');">
                                 <button type="submit" class="btn btn-outline-danger btn-sm">Hủy vé</button>
                             </form>
                             {% else %}
