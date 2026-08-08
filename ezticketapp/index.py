@@ -173,8 +173,34 @@ def register_auth_route(app):
     @login_required
     @role_required("ORGANIZER")
     def organizer_dashboard():
+        #Lấy theo quý, theo , năm 
+        year = request.args.get("year", type=int)
+        quarter = request.args.get("quarter", type=int)
+        month = request.args.get("month", type=int)
+
         events = dao.load_my_events()
-        return render_template("organizer/dashboard.html", total_events=len(events))
+
+        # Lấy Top 5 sự kiện có doanh thu cao nhất theo bộ lọc (năm, quý, tháng)
+        top_5_events = dao.get_top_revenue_events(limit=5, month=month, quarter=quarter, year=year)
+        labels = [item['event'].name for item in top_5_events]
+        revenues = [item['revenue'] for item in top_5_events]
+
+        # Tính tổng doanh thu tất cả sự kiện trong khoảng thời gian đã chọn
+        all_revenues = [float(dao.revenue_event(e.id, month=month, quarter=quarter, year=year) or 0) for e in events]
+        total_revenue = sum(all_revenues)
+
+        current_yr = datetime.now().year
+        years = [current_yr]
+
+        return render_template("organizer/dashboard.html",
+                               total_events=len(events),
+                               labels=labels,
+                               revenues=revenues,
+                               selected_year=year,
+                               selected_quarter=quarter,
+                               selected_month=month,
+                               total_revenue=total_revenue,
+                               years=years)
 
     @app.route("/organizer/events/<int:event_id>/delete", methods=["GET", "POST", "DELETE"])
     @login_required

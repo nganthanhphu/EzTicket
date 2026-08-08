@@ -3,7 +3,7 @@ from datetime import datetime
 
 from flask import current_app
 from flask_login import current_user
-from sqlalchemy import case, func
+from sqlalchemy import case, func,extract
 
 from ezticketapp import db
 from .models import Order, Order, OrderItem, OrderStatus, PaymentMethod, User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender, Voucher
@@ -470,6 +470,7 @@ def has_order(event_id):
         .first()
         is not None
     )
+
 def delete_event(event_id):
     event = get_event_by_id(event_id)
     if event is None:
@@ -485,3 +486,61 @@ def delete_event(event_id):
     except Exception:
         db.session.rollback()
         return False, "Không thể xóa"
+
+#doanh thu cua mot su kien 
+#cach su ly xuat phat tu => orderItem => EventTicket =>event
+def revenue_event(event_id, month=None, quarter=None, year=None):
+    event = get_event_by_id(event_id)
+    if event is None:
+        return None
+
+    query = (
+        OrderItem.query
+        .with_entities(
+            func.sum(OrderItem.quantity * EventTicket.price)
+        )
+        .join(
+            EventTicket,
+            OrderItem.event_ticket_id == EventTicket.id
+        )
+        .join(
+            Order,
+            OrderItem.order_id == Order.id
+        )
+        #do momo bị lỗi để trang thái Pending đỡ
+        .filter(
+            EventTicket.event_id == event_id,
+            Order.status.in_([OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.PENDING])
+        )
+    )
+
+    if year:
+        query = query.filter(
+            extract("year", Order.date) == year
+        )
+
+    if month:
+        query = query.filter(
+            extract("month", Order.date) == month
+        )
+
+    if quarter:
+        query = query.filter(
+            extract("quarter", Order.date) == quarter
+        )
+
+    return query.scalar() or 0
+
+
+# Lay top 5 su kien co doanh thu cao nhat
+def get_top_revenue_events(limit=5, month=None, quarter=None, year=None):
+    events = load_my_events()
+    event_list = []
+    for e in events:
+        rev = revenue_event(e.id, month=month, quarter=quarter, year=year) or 0
+        event_list.append({
+            'event': e,
+            'revenue': float(rev)
+        })
+    event_list.sort(key=lambda x: x['revenue'], reverse=True)
+    return event_list[:limit]
