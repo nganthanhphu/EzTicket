@@ -219,3 +219,6 @@ __marimo__/
 
 # PyCharm
 .idea/
+
+# Firebase authentication files
+firebase/
