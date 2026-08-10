@@ -10,7 +10,7 @@ import qrcode
 import requests
 from flask import request
 from flask_mail import Message
-
+from firebase_admin import db as firebase_db
 from ezticketapp.models import OrderStatus
 
 
@@ -199,3 +199,26 @@ def can_cancel_order(order, current_time=None):
 
     deadline = order.date + datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
     return current_time <= deadline
+
+
+def send_inapp_notification(user_ids, title, message):
+    try:
+        updates = {}
+        for user_id in user_ids:
+            ref = firebase_db.reference(f"notifications/{user_id}")
+            new_noti_ref = ref.push()
+
+            payload = {
+                "id": new_noti_ref.key,
+                "title": title,
+                "message": message,
+                "is_read": False,
+                "created_at": datetime.datetime.now().isoformat()
+            }
+
+            updates[f"notifications/{user_id}/{new_noti_ref.key}"] = payload
+
+        firebase_db.reference().update(updates)
+        return True
+    except Exception as e:
+        return False
