@@ -15,6 +15,10 @@ from ezticketapp.models import Order, OrderItem, User, Gender, OrderStatus, Role
 from google.genai import types
 import base64
 from io import BytesIO
+from ezticketapp.admin import init_admin
+
+init_admin(app)
+
 
 
 def register_routes(app):
@@ -60,6 +64,44 @@ def register_auth_route(app):
     @anonymous_required
     def login():
         return render_template("auth/login.html")
+
+    @app.route("/admin/login", methods=["GET", "POST"])
+    def admin_login():
+        if current_user.is_authenticated and current_user.role == Role.ADMIN:
+            return redirect(url_for("admin.index"))
+
+        if request.method == "POST":
+            email = (request.form.get("email") or "").strip()
+            password = (request.form.get("password") or "").strip()
+
+            if not email or not password:
+                flash("Thiếu thông tin đăng nhập.")
+                return render_template("admin/login.html")
+
+            user = User.query.filter(User.email == email).first()
+            if not user:
+                flash("Tài khoản không tồn tại.")
+                return render_template("admin/login.html")
+
+            pwd_hash = hashlib.md5(password.encode("utf-8")).hexdigest()
+            if user.password != password and user.password != pwd_hash:
+                flash("Mật khẩu không đúng.")
+                return render_template("admin/login.html")
+
+            if user.role != Role.ADMIN:
+                flash("Tài khoản của bạn không có quyền Quản trị viên (Admin).")
+                return render_template("admin/login.html")
+
+            if not user.active:
+                flash("Tài khoản của bạn đang chờ duyệt.")
+                return render_template("admin/login.html")
+
+            login_user(user)
+            flash("Đăng nhập Admin thành công.")
+            next_url = request.args.get("next") or url_for("admin.index")
+            return redirect(next_url)
+
+        return render_template("admin/login.html")
 
     @app.route("/register", methods=["GET"])
     @anonymous_required
@@ -550,6 +592,10 @@ def register_auth_route(app):
         pwd_hash = hashlib.md5(password.encode('utf-8')).hexdigest()
         if user.password != password and user.password != pwd_hash:
             flash("Mật khẩu không đúng.")
+            return redirect(url_for('login'))
+
+        if user.role == Role.ADMIN:
+            flash("Tài khoản Admin không được phép đăng nhập ở trang Khách hàng.")
             return redirect(url_for('login'))
 
         if not user.active:

@@ -95,6 +95,8 @@ def add_user(name, email, password, avatar=None, role_name="CUSTOMER", gender_na
     role = Role.CUSTOMER
     if role_name == "ORGANIZER":
         role = Role.ORGANIZER
+    elif role_name == "ADMIN":
+        role = Role.ADMIN
 
     u = User(
         full_name=name,
@@ -544,3 +546,34 @@ def get_top_revenue_events(limit=5, month=None, quarter=None, year=None):
         })
     event_list.sort(key=lambda x: x['revenue'], reverse=True)
     return event_list[:limit]
+
+
+# Lay tat ca su kien trong he thong cho Admin
+def get_all_events():
+    return Event.query.order_by(Event.time.asc()).all()
+
+
+# Lay top 5 su kien co doanh thu cao nhat toan he thong cho Admin
+def get_admin_top_revenue_events(limit=5, month=None, quarter=None, year=None):
+    events = get_all_events()
+    event_list = []
+    for e in events:
+        rev = revenue_event(e.id, month=month, quarter=quarter, year=year) or 0
+        event_list.append({
+            'event': e,
+            'revenue': float(rev)
+        })
+    event_list.sort(key=lambda x: x['revenue'], reverse=True)
+    return event_list[:limit]
+
+
+# Lay danh sach cac nam co don hang
+def get_revenue_years():
+    years = db.session.query(extract('year', Order.date)).distinct().all()
+    year_list = [int(y[0]) for y in years if y[0] is not None]
+    current_yr = datetime.now().year
+    if current_yr not in year_list:
+        year_list.append(current_yr)
+    year_list.sort(reverse=True)
+    return year_list
+
