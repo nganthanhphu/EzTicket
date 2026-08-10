@@ -95,8 +95,6 @@ def add_user(name, email, password, avatar=None, role_name="CUSTOMER", gender_na
     role = Role.CUSTOMER
     if role_name == "ORGANIZER":
         role = Role.ORGANIZER
-    elif role_name == "ADMIN":
-        role = Role.ADMIN
 
     u = User(
         full_name=name,
@@ -534,6 +532,8 @@ def revenue_event(event_id, month=None, quarter=None, year=None):
     return query.scalar() or 0
 
 
+#dành cho admin 
+
 # Lay top 5 su kien co doanh thu cao nhat
 def get_top_revenue_events(limit=5, month=None, quarter=None, year=None):
     events = load_my_events()
@@ -548,10 +548,11 @@ def get_top_revenue_events(limit=5, month=None, quarter=None, year=None):
     return event_list[:limit]
 
 
+
+
 # Lay tat ca su kien trong he thong cho Admin
 def get_all_events():
     return Event.query.order_by(Event.time.asc()).all()
-
 
 # Lay top 5 su kien co doanh thu cao nhat toan he thong cho Admin
 def get_admin_top_revenue_events(limit=5, month=None, quarter=None, year=None):
