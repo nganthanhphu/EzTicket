@@ -54,6 +54,13 @@ def register_routes(app):
             event=event
         )
 
+    @app.context_processor
+    def common_attributes():
+        if current_user.is_authenticated:
+            token = utils.get_firebase_custom_token(current_user.id)
+            return dict(firebase_custom_token=token)
+        return dict(firebase_custom_token=None)
+
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])

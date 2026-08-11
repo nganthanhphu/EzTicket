@@ -11,6 +11,7 @@ import requests
 from flask import request
 from flask_mail import Message
 from firebase_admin import db as firebase_db
+from firebase_admin import auth as firebase_auth
 from ezticketapp.models import OrderStatus
 
 
@@ -222,3 +223,8 @@ def send_inapp_notification(user_ids, title, message):
         return True
     except Exception as e:
         return False
+
+
+def get_firebase_custom_token(user_id):
+    custom_token = firebase_auth.create_custom_token(str(user_id))
+    return custom_token.decode('utf-8')
