@@ -290,6 +290,7 @@ def register_auth_route(app):
             success, message = dao.update_event(event, request.form, image_url=image_url)
             flash(message)
             if success:
+                utils.handle_event_info_change_notification(event)
                 return redirect(url_for("organizer_event_detail", event_id=event.id))
 
         tickets = dao.load_event_tickets(event.id)

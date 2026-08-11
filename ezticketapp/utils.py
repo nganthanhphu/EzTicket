@@ -228,3 +228,10 @@ def send_inapp_notification(user_ids, title, message):
 def get_firebase_custom_token(user_id):
     custom_token = firebase_auth.create_custom_token(str(user_id))
     return custom_token.decode('utf-8')
+
+
+def handle_event_info_change_notification(event):
+    from ezticketapp import dao
+    users = dao.get_paid_user_by_event(event.id)
+    user_ids = [user.id for user in users]
+    send_inapp_notification(user_ids, "Thông báo thay đổi thông tin sự kiện", f"Thông tin sự kiện {event.name} bạn đã mua vé đã được thay đổi. Vui lòng kiểm tra lại thông tin sự kiện.")
