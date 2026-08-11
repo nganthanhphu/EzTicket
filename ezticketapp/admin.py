@@ -98,36 +98,11 @@ class RevenueStatsView(AdminIndexView):
             url_for('login', next=request.url)
         )
 
-# tạo tài khoản admin nhanh => này sài chat GPT
-def ensure_admin_user(app):
-    with app.app_context():
-        try:
-            admin_user = User.query.filter_by(role=Role.ADMIN).first()
-            pwd_hash = hashlib.md5("123456".encode("utf-8")).hexdigest()
-
-            if not admin_user:
-                admin_user = User(
-                    full_name="Quản Trị Viên (Admin)",
-                    email="admin@example.com",
-                    password=pwd_hash,
-                    role=Role.ADMIN,
-                    active=True
-                )
-                db.session.add(admin_user)
-                db.session.commit()
-                print("=> Đã khởi tạo tài khoản Admin: admin@example.com / 123456")
-            else:
-                admin_user.password = pwd_hash
-                admin_user.active = True
-                db.session.commit()
-                print("=> Tài khoản Admin sẵn sàng: admin@example.com / 123456")
-        except Exception as e:
-            print("Lỗi khởi tạo tài khoản Admin:", e)
 
 
 
 def init_admin(app):
-    ensure_admin_user(app)
+
 
     admin = Admin(
         app,
