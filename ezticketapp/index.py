@@ -176,6 +176,149 @@ def register_auth_route(app):
         events = dao.load_my_events()
         return render_template("organizer/dashboard.html", total_events=len(events))
 
+    @app.route("/organizer/verify-ticket", methods=["GET"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_verify_ticket():
+        return render_template("organizer/verify_ticket.html")
+
+    @app.route("/organizer/verify-ticket/qr", methods=["POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_verify_ticket_qr():
+        payload = request.get_json(silent=True) or {}
+        image_data = payload.get("image")
+        if not image_data:
+            return jsonify({"success": False, "message": "Không nhận được dữ liệu ảnh."}), 400
+
+        try:
+            from pyzbar.pyzbar import decode
+            import numpy as np
+            from PIL import Image as PILImage
+
+            img_bytes = base64.b64decode(image_data)
+            img = PILImage.open(BytesIO(img_bytes)).convert("RGB")
+            arr = np.array(img)
+            decoded = decode(arr)
+            if not decoded:
+                return jsonify({"success": False, "message": "Không đọc được mã QR. Vui lòng chụp lại."}), 400
+
+            auth_code = decoded[0].data.decode("utf-8", errors="ignore").strip()
+            order = Order.query.filter_by(authentication_code=auth_code).first()
+            if not order:
+                return jsonify({"success": False, "message": "Mã QR không khớp với đơn hàng hợp lệ."}), 404
+
+            event = utils.get_order_event(order)
+            if not event:
+                return jsonify({"success": False, "message": "Không tìm thấy sự kiện của đơn hàng."}), 404
+            if getattr(event, "organizer_id", None) != current_user.id:
+                return jsonify({"success": False, "message": "Đơn hàng không thuộc sự kiện bạn quản lý."}), 403
+
+            order_status = getattr(getattr(order, "status", None), "name", getattr(order, "status", None))
+            if order_status != OrderStatus.PAID.name:
+                return jsonify({"success": False, "message": "Đơn hàng chưa ở trạng thái PAID nên chưa thể xác thực."}), 400
+
+            order_items = getattr(order, "order_items", None) or []
+            ticket_summary = []
+            for item in order_items:
+                ticket = getattr(item, "event_ticket", None)
+                ticket_type = getattr(getattr(ticket, "ticket_type", None), "name", "Không xác định")
+                ticket_summary.append(f"{ticket_type}: x{getattr(item, 'quantity', 0)}")
+
+            summary = "<div><strong>Sự kiện:</strong> {}</div><div><strong>Mã đơn:</strong> #{}</div><div><strong>Vé:</strong> {}</div>".format(
+                getattr(event, "name", "Không xác định"),
+                order.id,
+                " | ".join(ticket_summary) if ticket_summary else "Không có thông tin vé"
+            )
+
+            return jsonify({
+                "success": True,
+                "message": "Quét QR thành công. Vui lòng xác thực khuôn mặt.",
+                "order_id": order.id,
+                "authentication_code": auth_code,
+                "summary": summary,
+            })
+        except Exception as e:
+            print(e)
+            return jsonify({"success": False, "message": "Không thể xử lý ảnh QR."}), 500
+
+    @app.route("/organizer/verify-ticket/face", methods=["POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_verify_ticket_face():
+        payload = request.get_json(silent=True) or {}
+        image_data = payload.get("image")
+        order_id = payload.get("order_id")
+        if not image_data or not order_id:
+            return jsonify({"success": False, "message": "Thiếu dữ liệu ảnh hoặc đơn hàng."}), 400
+
+        try:
+            order = dao.get_order_by_id(int(order_id))
+            if not order:
+                return jsonify({"success": False, "message": "Đơn hàng không tồn tại."}), 404
+
+            event = utils.get_order_event(order)
+            if not event or getattr(event, "organizer_id", None) != current_user.id:
+                return jsonify({"success": False, "message": "Đơn hàng không thuộc sự kiện bạn quản lý."}), 403
+
+            if not getattr(order, "authentication_face", None):
+                return jsonify({"success": False, "message": "Khách hàng chưa có ảnh xác minh khuôn mặt trong hệ thống."}), 400
+
+            face_url = getattr(order, "authentication_face", None)
+            stored_image = requests.get(face_url, timeout=20)
+            stored_image.raise_for_status()
+
+            img_bytes = base64.b64decode(image_data)
+            live_image = Image.open(BytesIO(img_bytes))
+            stored_image_obj = Image.open(BytesIO(stored_image.content))
+
+            config = types.GenerateContentConfig(
+                system_instruction="Bạn là chuyên gia nhận diện khuôn mặt. Hãy so sánh hai ảnh: ảnh gốc đã lưu trong hệ thống và ảnh chụp mới. Nếu là cùng một người và đủ điều kiện nhận diện, hãy trả về đúng dòng 'MATCH'. Nếu không khớp, trả về 'NO_MATCH'."
+            )
+
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=[stored_image_obj, live_image],
+                config=config,
+            )
+            result = (response.text or "").strip().upper()
+            if result == "MATCH":
+                return jsonify({"success": True, "message": "Khuôn mặt khớp. Bạn có thể xác nhận vé."})
+            return jsonify({"success": False, "message": "Khuôn mặt không khớp. Vui lòng thử lại."}), 400
+        except Exception as e:
+            print(e)
+            return jsonify({"success": False, "message": "Không thể xử lý ảnh khuôn mặt."}), 500
+
+    @app.route("/organizer/verify-ticket/confirm", methods=["POST"])
+    @login_required
+    @role_required("ORGANIZER")
+    def organizer_verify_ticket_confirm():
+        payload = request.get_json(silent=True) or {}
+        order_id = payload.get("order_id")
+        if not order_id:
+            return jsonify({"success": False, "message": "Thiếu thông tin đơn hàng."}), 400
+
+        order = dao.get_order_by_id(int(order_id))
+        if not order:
+            return jsonify({"success": False, "message": "Đơn hàng không tồn tại."}), 404
+
+        event = utils.get_order_event(order)
+        if not event or getattr(event, "organizer_id", None) != current_user.id:
+            return jsonify({"success": False, "message": "Đơn hàng không thuộc sự kiện bạn quản lý."}), 403
+
+        if getattr(getattr(order, "status", None), "name", getattr(order, "status", None)) != OrderStatus.PAID.name:
+            return jsonify({"success": False, "message": "Đơn hàng không còn ở trạng thái PAID."}), 400
+
+        try:
+            with db.session.begin_nested():
+                dao.update_order(int(order_id), status=OrderStatus.COMPLETED)
+                db.session.commit()
+            return jsonify({"success": True, "message": "Xác thực vé thành công. Đơn hàng đã chuyển sang COMPLETED."})
+        except Exception as e:
+            print(e)
+            db.session.rollback()
+            return jsonify({"success": False, "message": "Không thể cập nhật trạng thái vé."}), 500
+
     @app.route("/organizer/events/<int:event_id>/delete", methods=["GET", "POST", "DELETE"])
     @login_required
     @role_required("ORGANIZER")
@@ -319,14 +462,6 @@ def register_auth_route(app):
         flash(message)
         return redirect(url_for("organizer_edit_event", event_id=event_id))
     
-
-
-
-
-
-
-
-
 
     @app.route("/organizer/tickets/<int:ticket_id>/edit", methods=["POST"])
     @login_required

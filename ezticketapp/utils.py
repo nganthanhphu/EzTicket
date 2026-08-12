@@ -199,3 +199,4 @@ def can_cancel_order(order, current_time=None):
 
     deadline = order.date + datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
     return current_time <= deadline
+
