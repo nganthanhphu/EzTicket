@@ -215,29 +215,79 @@ def register_auth_route(app):
     @login_required
     @role_required("ORGANIZER")
     def organizer_dashboard():
-        #Lấy theo quý, theo , năm 
+        filter_type = request.args.get("filter_type", "").strip()
+        date_val = request.args.get("date_val", "").strip()
+        week_date = request.args.get("week_date", "").strip()
         year = request.args.get("year", type=int)
         quarter = request.args.get("quarter", type=int)
         month = request.args.get("month", type=int)
 
         events = dao.load_my_events()
 
-        # Lấy Top 5 sự kiện có doanh thu cao nhất theo bộ lọc (năm, quý, tháng)
-        top_5_events = dao.get_top_revenue_events(limit=5, month=month, quarter=quarter, year=year)
+        # Lấy Top 5 sự kiện có doanh thu cao nhất theo bộ lọc
+        top_5_events = dao.get_top_revenue_events(
+            limit=5,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        )
         labels = [item['event'].name for item in top_5_events]
         revenues = [item['revenue'] for item in top_5_events]
 
         # Tính tổng doanh thu tất cả sự kiện trong khoảng thời gian đã chọn
-        all_revenues = [float(dao.revenue_event(e.id, month=month, quarter=quarter, year=year) or 0) for e in events]
+        all_revenues = [
+            float(
+                dao.revenue_event(
+                    e.id,
+                    filter_type=filter_type,
+                    date_val=date_val,
+                    week_date=week_date,
+                    month=month,
+                    quarter=quarter,
+                    year=year
+                ) or 0
+            ) for e in events
+        ]
         total_revenue = sum(all_revenues)
 
-        current_yr = datetime.now().year
-        years = [current_yr]
+        years = dao.get_revenue_years()
+
+        # Thống kê doanh thu tất cả sự kiện (Line Chart)
+        all_event_labels, all_event_revenues = dao.get_all_events_revenue(
+            organizer_id=current_user.id,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        )
+
+        # Thống kê doanh thu theo ngày (Line Chart)
+        daily_labels, daily_revenues = dao.get_daily_revenue_stats(
+            organizer_id=current_user.id,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        )
 
         return render_template("organizer/dashboard.html",
                                total_events=len(events),
                                labels=labels,
                                revenues=revenues,
+                               all_event_labels=all_event_labels,
+                               all_event_revenues=all_event_revenues,
+                               daily_labels=daily_labels,
+                               daily_revenues=daily_revenues,
+                               selected_filter_type=filter_type,
+                               selected_date_val=date_val,
+                               selected_week_date=week_date,
                                selected_year=year,
                                selected_quarter=quarter,
                                selected_month=month,

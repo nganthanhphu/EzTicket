@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta, date
 
 from flask import current_app
 from flask_login import current_user
@@ -489,7 +489,7 @@ def delete_event(event_id):
 
 #doanh thu cua mot su kien 
 #cach su ly xuat phat tu => orderItem => EventTicket =>event
-def revenue_event(event_id, month=None, quarter=None, year=None):
+def revenue_event(event_id, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
     event = get_event_by_id(event_id)
     if event is None:
         return None
@@ -514,20 +514,50 @@ def revenue_event(event_id, month=None, quarter=None, year=None):
         )
     )
 
-    if year:
-        query = query.filter(
-            extract("year", Order.date) == year
-        )
-
-    if month:
-        query = query.filter(
-            extract("month", Order.date) == month
-        )
-
-    if quarter:
-        query = query.filter(
-            extract("quarter", Order.date) == quarter
-        )
+    if filter_type == 'date' and date_val:
+        try:
+            if isinstance(date_val, str):
+                d = datetime.strptime(date_val, "%Y-%m-%d").date()
+            else:
+                d = date_val
+            start_dt = datetime.combine(d, datetime.min.time())
+            end_dt = datetime.combine(d, datetime.max.time())
+            query = query.filter(Order.date >= start_dt, Order.date <= end_dt)
+        except Exception:
+            pass
+    elif filter_type == 'week' and week_date:
+        try:
+            if isinstance(week_date, str):
+                w_d = datetime.strptime(week_date, "%Y-%m-%d").date()
+            else:
+                w_d = week_date
+            start_of_week = w_d - timedelta(days=w_d.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+            start_dt = datetime.combine(start_of_week, datetime.min.time())
+            end_dt = datetime.combine(end_of_week, datetime.max.time())
+            query = query.filter(Order.date >= start_dt, Order.date <= end_dt)
+        except Exception:
+            pass
+    elif filter_type == 'month':
+        if month:
+            query = query.filter(extract("month", Order.date) == month)
+        if year:
+            query = query.filter(extract("year", Order.date) == year)
+    elif filter_type == 'quarter':
+        if quarter:
+            query = query.filter(extract("quarter", Order.date) == quarter)
+        if year:
+            query = query.filter(extract("year", Order.date) == year)
+    elif filter_type == 'year':
+        if year:
+            query = query.filter(extract("year", Order.date) == year)
+    else:
+        if month:
+            query = query.filter(extract("month", Order.date) == month)
+        if quarter:
+            query = query.filter(extract("quarter", Order.date) == quarter)
+        if year:
+            query = query.filter(extract("year", Order.date) == year)
 
     return query.scalar() or 0
 
@@ -535,11 +565,19 @@ def revenue_event(event_id, month=None, quarter=None, year=None):
 #dành cho admin 
 
 # Lay top 5 su kien co doanh thu cao nhat
-def get_top_revenue_events(limit=5, month=None, quarter=None, year=None):
+def get_top_revenue_events(limit=5, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
     events = load_my_events()
     event_list = []
     for e in events:
-        rev = revenue_event(e.id, month=month, quarter=quarter, year=year) or 0
+        rev = revenue_event(
+            e.id,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        ) or 0
         event_list.append({
             'event': e,
             'revenue': float(rev)
@@ -555,11 +593,19 @@ def get_all_events():
     return Event.query.order_by(Event.time.asc()).all()
 
 # Lay top 5 su kien co doanh thu cao nhat toan he thong cho Admin
-def get_admin_top_revenue_events(limit=5, month=None, quarter=None, year=None):
+def get_admin_top_revenue_events(limit=5, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
     events = get_all_events()
     event_list = []
     for e in events:
-        rev = revenue_event(e.id, month=month, quarter=quarter, year=year) or 0
+        rev = revenue_event(
+            e.id,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        ) or 0
         event_list.append({
             'event': e,
             'revenue': float(rev)
@@ -577,4 +623,177 @@ def get_revenue_years():
         year_list.append(current_yr)
     year_list.sort(reverse=True)
     return year_list
+
+
+# Lấy doanh thu của tất cả sự kiện theo bộ lọc cho Line Chart
+def get_all_events_revenue(organizer_id=None, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
+    if organizer_id:
+        events = load_my_events()
+    else:
+        events = get_all_events()
+
+    labels = []
+    revenues = []
+    for e in events:
+        rev = revenue_event(
+            e.id,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        ) or 0
+        labels.append(e.name)
+        revenues.append(float(rev))
+
+    return labels, revenues
+
+
+#doanh thu Line Chart  theo kiểu lọc (Năm, Quý, Tháng, Tuần, Ngày)
+def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
+    import calendar
+
+    valid_statuses = [OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.PENDING]
+
+    # 1.Thống kê 12 Tháng trong Năm
+    if filter_type == 'year' or (year and not month and not quarter and not filter_type):
+        target_year = year or datetime.now().year
+        query = (
+            db.session.query(
+                extract("month", Order.date).label('m'),
+                func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+            )
+            .join(OrderItem, OrderItem.order_id == Order.id)
+            .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
+            .join(Event, EventTicket.event_id == Event.id)
+            .filter(
+                Order.status.in_(valid_statuses),
+                extract("year", Order.date) == target_year
+            )
+        )
+        if organizer_id:
+            query = query.filter(Event.organizer_id == organizer_id)
+        results = query.group_by(extract("month", Order.date)).all()
+        month_map = {int(r.m): float(r.revenue or 0) for r in results if r.m is not None}
+        
+        labels = [f"Tháng {m}" for m in range(1, 13)]
+        revenues = [month_map.get(m, 0.0) for m in range(1, 13)]
+        return labels, revenues
+
+    # 2. KIỂU LỌC: QUÝ -> Thống kê 3 Tháng trong Quý
+    elif filter_type == 'quarter' or (quarter and not month and not filter_type):
+        target_quarter = quarter or 1
+        target_year = year or datetime.now().year
+        start_m = (target_quarter - 1) * 3 + 1
+        quarter_months = [start_m, start_m + 1, start_m + 2]
+        
+        query = (
+            db.session.query(
+                extract("month", Order.date).label('m'),
+                func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+            )
+            .join(OrderItem, OrderItem.order_id == Order.id)
+            .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
+            .join(Event, EventTicket.event_id == Event.id)
+            .filter(
+                Order.status.in_(valid_statuses),
+                extract("year", Order.date) == target_year,
+                extract("month", Order.date).in_(quarter_months)
+            )
+        )
+        if organizer_id:
+            query = query.filter(Event.organizer_id == organizer_id)
+        results = query.group_by(extract("month", Order.date)).all()
+        month_map = {int(r.m): float(r.revenue or 0) for r in results if r.m is not None}
+        
+        labels = [f"Tháng {m}" for m in quarter_months]
+        revenues = [month_map.get(m, 0.0) for m in quarter_months]
+        return labels, revenues
+
+    # 3. KIỂU LỌC: TUẦN -> Thống kê 7 Ngày trong Tuần
+    elif filter_type == 'week' and week_date:
+        try:
+            if isinstance(week_date, str):
+                w_d = datetime.strptime(week_date, "%Y-%m-%d").date()
+            else:
+                w_d = week_date
+            start_of_week = w_d - timedelta(days=w_d.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+            
+            query = (
+                db.session.query(
+                    func.date(Order.date).label('day'),
+                    func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+                )
+                .join(OrderItem, OrderItem.order_id == Order.id)
+                .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
+                .join(Event, EventTicket.event_id == Event.id)
+                .filter(
+                    Order.status.in_(valid_statuses),
+                    func.date(Order.date) >= start_of_week,
+                    func.date(Order.date) <= end_of_week
+                )
+            )
+            if organizer_id:
+                query = query.filter(Event.organizer_id == organizer_id)
+            results = query.group_by(func.date(Order.date)).all()
+            day_map = {str(r.day): float(r.revenue or 0) for r in results if r.day is not None}
+
+            day_names = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"]
+            labels = []
+            revenues = []
+            for i in range(7):
+                curr_day = start_of_week + timedelta(days=i)
+                day_str = curr_day.strftime("%Y-%m-%d")
+                labels.append(f"{day_names[i]} ({curr_day.strftime('%d/%m')})")
+                revenues.append(day_map.get(day_str, 0.0))
+
+            return labels, revenues
+        except Exception:
+            pass
+
+    # 4. Thống kê các Ngày trong Tháng
+    if filter_type == 'date' and date_val:
+        try:
+            if isinstance(date_val, str):
+                d = datetime.strptime(date_val, "%Y-%m-%d").date()
+            else:
+                d = date_val
+            target_month = d.month
+            target_year = d.year
+        except Exception:
+            target_month = month or datetime.now().month
+            target_year = year or datetime.now().year
+    else:
+        target_month = month or datetime.now().month
+        target_year = year or datetime.now().year
+
+    _, num_days = calendar.monthrange(target_year, target_month)
+
+    query = (
+        db.session.query(
+            extract("day", Order.date).label('d'),
+            func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+        )
+        .join(OrderItem, OrderItem.order_id == Order.id)
+        .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
+        .join(Event, EventTicket.event_id == Event.id)
+        .filter(
+            Order.status.in_(valid_statuses),
+            extract("month", Order.date) == target_month,
+            extract("year", Order.date) == target_year
+        )
+    )
+    if organizer_id:
+        query = query.filter(Event.organizer_id == organizer_id)
+    results = query.group_by(extract("day", Order.date)).all()
+    day_map = {int(r.d): float(r.revenue or 0) for r in results if r.d is not None}
+
+    labels = [f"Ngày {d}" for d in range(1, num_days + 1)]
+    revenues = [day_map.get(d, 0.0) for d in range(1, num_days + 1)]
+
+    return labels, revenues
+
+
 

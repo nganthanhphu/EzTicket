@@ -51,23 +51,34 @@
                     </h5>
 
                     <!-- Filter Form -->
-                    <form method="GET" action="{{ url_for('organizer_dashboard') }}"
-                        class="d-flex flex-wrap align-items-center gap-2">
-                        <!-- Select Năm -->
-                        <div>
-                            <select name="year" class="form-select form-select-sm border-secondary-subtle fw-semibold">
-                                <option value="">-- Chọn Năm --</option>
-                                {% for y in years %}
-                                <option value="{{ y }}" {% if selected_year==y %}selected{% endif %}>Năm {{ y }}
+                    <form method="GET" action="{{ url_for('organizer_dashboard') }}" id="revenueFilterForm"
+                        class="d-flex flex-nowrap align-items-center gap-2 p-2 bg-light rounded-3 border overflow-x-auto"
+                        style="min-height: 50px;">
+                        <!-- Select Kiểu Lọc -->
+                        <div style="width: 170px; flex-shrink: 0;">
+                            <select name="filter_type" id="filterTypeSelect"
+                                class="form-select form-select-sm border-secondary-subtle fw-bold text-primary shadow-sm">
+                                <option value="">-- Chọn Kiểu Lọc --</option>
+                                <option value="quarter" {% if selected_filter_type=='quarter' or (selected_quarter and
+                                    not selected_filter_type) %}selected{% endif %}>Theo Quý</option>
+                                <option value="month" {% if selected_filter_type=='month' or (selected_month and not
+                                    selected_quarter and not selected_filter_type) %}selected{% endif %}>Theo Tháng
                                 </option>
-                                {% endfor %}
+                                <option value="date" {% if selected_filter_type=='date' or (selected_date_val and not
+                                    selected_filter_type) %}selected{% endif %}>Theo Ngày (Ngày cụ thể)</option>
+                                <option value="week" {% if selected_filter_type=='week' or (selected_week_date and not
+                                    selected_filter_type) %}selected{% endif %}>Theo Tuần (Tuần theo ngày)</option>
+                                <option value="year" {% if selected_filter_type=='year' or (selected_year and not
+                                    selected_month and not selected_quarter and not selected_filter_type) %}selected{%
+                                    endif %}>Theo Năm</option>
                             </select>
                         </div>
 
-                        <!-- Select Quý -->
-                        <div>
-                            <select name="quarter"
-                                class="form-select form-select-sm border-secondary-subtle fw-semibold">
+                        <!-- Group Quý -->
+                        <div id="groupQuarter" class="filter-group"
+                            style="display: none; width: 160px; flex-shrink: 0;">
+                            <select name="quarter" id="quarterSelect"
+                                class="form-select form-select-sm border-secondary-subtle fw-semibold shadow-sm">
                                 <option value="">-- Chọn Quý --</option>
                                 <option value="1" {% if selected_quarter==1 %}selected{% endif %}>Quý 1 (Tháng 1-3)
                                 </option>
@@ -80,9 +91,10 @@
                             </select>
                         </div>
 
-                        <!-- Select Tháng -->
-                        <div>
-                            <select name="month" class="form-select form-select-sm border-secondary-subtle fw-semibold">
+                        <!-- Group Tháng -->
+                        <div id="groupMonth" class="filter-group" style="display: none; width: 150px; flex-shrink: 0;">
+                            <select name="month" id="monthSelect"
+                                class="form-select form-select-sm border-secondary-subtle fw-semibold shadow-sm">
                                 <option value="">-- Chọn Tháng --</option>
                                 {% for m in range(1, 13) %}
                                 <option value="{{ m }}" {% if selected_month==m %}selected{% endif %}>Tháng {{ m }}
@@ -91,31 +103,47 @@
                             </select>
                         </div>
 
+                        <!-- Group Ngày (Tháng theo ngày) -->
+                        <div id="groupDate" class="filter-group" style="display: none; width: 150px; flex-shrink: 0;">
+                            <input type="date" name="date_val" id="dateInput"
+                                class="form-control form-control-sm border-secondary-subtle fw-semibold shadow-sm"
+                                value="{{ selected_date_val or '' }}" title="Chọn ngày cụ thể">
+                        </div>
+
+                        <!-- Group Tuần (Tuần theo ngày) -->
+                        <div id="groupWeek" class="filter-group" style="display: none; width: 150px; flex-shrink: 0;">
+                            <input type="date" name="week_date" id="weekInput"
+                                class="form-control form-control-sm border-secondary-subtle fw-semibold shadow-sm"
+                                value="{{ selected_week_date or '' }}" title="Chọn 1 ngày bất kỳ trong tuần">
+                        </div>
+
+                        <!-- Group Năm -->
+                        <div id="groupYear" class="filter-group" style="display: none; width: 130px; flex-shrink: 0;">
+                            <select name="year" id="yearSelect"
+                                class="form-select form-select-sm border-secondary-subtle fw-semibold shadow-sm">
+                                <option value="">-- Chọn Năm --</option>
+                                {% for y in years %}
+                                <option value="{{ y }}" {% if selected_year==y %}selected{% endif %}>Năm {{ y }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <!-- Submit & Reset Buttons -->
-                        <button type="submit" class="btn btn-primary btn-sm px-3 fw-bold rounded-3">
-                            <i class="fa-solid fa-filter me-1"></i>Lọc
-                        </button>
-                        <a href="{{ url_for('organizer_dashboard') }}"
-                            class="btn btn-outline-secondary btn-sm px-3 rounded-3">
-                            <i class="fa-solid fa-rotate-left me-1"></i>Đặt lại
-                        </a>
+                        <div class="d-flex flex-nowrap align-items-center gap-1 ms-auto" style="flex-shrink: 0;">
+                            <button type="submit"
+                                class="btn btn-primary btn-sm px-3 fw-bold rounded-3 shadow-sm text-nowrap">
+                                <i class="fa-solid fa-filter me-1"></i>Lọc
+                            </button>
+                            <a href="{{ url_for('organizer_dashboard') }}"
+                                class="btn btn-outline-secondary btn-sm px-3 rounded-3 shadow-sm text-nowrap">
+                                <i class="fa-solid fa-rotate-left me-1"></i>Đặt lại
+                            </a>
+                        </div>
                     </form>
                 </div>
 
 
-                {% if not labels %}
-                <div class="text-center py-5 border rounded-4 bg-light bg-opacity-50 my-2">
-                    <div class="mb-3">
-                        <i class="fa-solid fa-calendar-xmark text-muted opacity-50" style="font-size: 3.5rem;"></i>
-                    </div>
-                    <h5 class="fw-bold text-secondary">Chưa có sự kiện nào</h5>
-                    <p class="text-muted small mb-3">Không có doanh thu ở khoảng thời gian đã chọn.</p>
-                    <a href="{{ url_for('organizer_create_event') }}"
-                        class="btn btn-primary btn-sm rounded-pill px-4 py-2 fw-semibold">
-                        <i class="fa-solid fa-plus me-1"></i>Tạo sự kiện mới ngay
-                    </a>
-                </div>
-                {% else %}
                 {% if total_revenue == 0 and (selected_year or selected_quarter or selected_month) %}
                 <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center mb-3">
                     <i class="fa-solid fa-circle-info fa-lg me-3 text-info"></i>
@@ -130,6 +158,29 @@
 
                 <div style="position: relative; height: 380px; width: 100%;">
                     <canvas id="revenueChart"></canvas>
+                </div>
+
+                <!-- Biểu Đồ Line Chart Doanh Thu -->
+                <div class="mt-4 pt-4 border-top">
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="fa-solid fa-chart-line text-success me-2"></i>Biểu Đồ Xu Hướng Doanh Thu (Line Chart -
+                        {% if selected_filter_type == 'year' or (selected_year and not selected_month and not
+                        selected_quarter and not selected_filter_type) %}
+                        12 Tháng trong Năm {{ selected_year or '' }}
+                        {% elif selected_filter_type == 'quarter' or (selected_quarter and not selected_month and not
+                        selected_filter_type) %}
+                        3 Tháng trong Quý {{ selected_quarter or '' }}
+                        {% elif selected_filter_type == 'week' and selected_week_date %}
+                        7 Ngày trong Tuần
+                        {% elif selected_filter_type == 'date' and selected_date_val %}
+                        Khung Giờ trong Ngày {{ selected_date_val }}
+                        {% else %}
+                        Các Ngày trong Tháng {% if selected_month %}{{ selected_month }}{% endif %}
+                        {% endif %})
+                    </h6>
+                    <div style="position: relative; height: 280px; width: 100%;">
+                        <canvas id="dailyRevenueChart"></canvas>
+                    </div>
                 </div>
 
                 <!-- Bảng Thống Kê Doanh Thu Sự Kiện -->
@@ -160,90 +211,214 @@
                         </table>
                     </div>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Import Chart.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Embedded JSON Data for Chart.js -->
+<script id="labels-data" type="application/json">{{ labels|tojson|safe }}</script>
+<script id="revenues-data" type="application/json">{{ revenues|tojson|safe }}</script>
+<script id="daily-labels-data" type="application/json">{{ daily_labels|tojson|safe }}</script>
+<script id="daily-revenues-data" type="application/json">{{ daily_revenues|tojson|safe }}</script>
+
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const canvas = document.getElementById('revenueChart');
-        if (!canvas) return; // Safeguard if empty state is rendered
+    function toggleFilterControls() {
+        const filterTypeSelect = document.getElementById('filterTypeSelect');
+        if (!filterTypeSelect) return;
 
-        const labels = {{ labels | tojson
-    }};
-    const revenues = {{ revenues | tojson }};
+        const filterType = filterTypeSelect.value;
+        const groupQuarter = document.getElementById('groupQuarter');
+        const groupMonth = document.getElementById('groupMonth');
+        const groupDate = document.getElementById('groupDate');
+        const groupWeek = document.getElementById('groupWeek');
+        const groupYear = document.getElementById('groupYear');
 
-    const ctx = canvas.getContext('2d');
+        const quarterSelect = document.getElementById('quarterSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        const dateInput = document.getElementById('dateInput');
+        const weekInput = document.getElementById('weekInput');
+        const yearSelect = document.getElementById('yearSelect');
 
-    // Create sleek gradient fill for bar chart
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(13, 110, 253, 0.85)');
-    gradient.addColorStop(1, 'rgba(13, 110, 253, 0.15)');
+        [groupQuarter, groupMonth, groupDate, groupWeek, groupYear].forEach(el => { if (el) el.style.display = 'none'; });
+        [quarterSelect, monthSelect, dateInput, weekInput, yearSelect].forEach(el => { if (el) el.disabled = true; });
 
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels.length > 0 ? labels : ['Chưa có dữ liệu'],
-            datasets: [{
-                label: 'Doanh thu (VNĐ)',
-                data: revenues.length > 0 ? revenues : [0],
-                backgroundColor: gradient,
-                borderColor: 'rgba(13, 110, 253, 1)',
-                borderWidth: 2,
-                borderRadius: 8,
-                borderSkipped: false,
-                barThickness: labels.length > 5 ? 'flex' : 45
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        font: { family: 'sans-serif', size: 13, weight: '600' }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(33, 37, 41, 0.9)',
-                    padding: 12,
-                    titleFont: { size: 14, weight: 'bold' },
-                    bodyFont: { size: 13 },
-                    callbacks: {
-                        label: function (context) {
-                            let val = context.raw || 0;
-                            return ' Doanh thu: ' + val.toLocaleString('vi-VN') + ' VNĐ';
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { size: 12 } }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                    ticks: {
-                        font: { size: 12 },
-                        callback: function (value) {
-                            if (value >= 1e9) return (value / 1e9).toFixed(1) + ' tỷ';
-                            if (value >= 1e6) return (value / 1e6).toFixed(1) + ' triệu';
-                            if (value >= 1e3) return (value / 1e3).toFixed(1) + 'k';
-                            return value.toLocaleString('vi-VN') + ' đ';
-                        }
-                    }
-                }
-            }
+        if (filterType === 'quarter') {
+            if (groupQuarter) groupQuarter.style.display = 'block';
+            if (quarterSelect) quarterSelect.disabled = false;
+            if (groupYear) groupYear.style.display = 'block';
+            if (yearSelect) yearSelect.disabled = false;
+        } else if (filterType === 'month') {
+            if (groupMonth) groupMonth.style.display = 'block';
+            if (monthSelect) monthSelect.disabled = false;
+            if (groupYear) groupYear.style.display = 'block';
+            if (yearSelect) yearSelect.disabled = false;
+        } else if (filterType === 'date') {
+            if (groupDate) groupDate.style.display = 'block';
+            if (dateInput) dateInput.disabled = false;
+        } else if (filterType === 'week') {
+            if (groupWeek) groupWeek.style.display = 'block';
+            if (weekInput) weekInput.disabled = false;
+        } else if (filterType === 'year') {
+            if (groupYear) groupYear.style.display = 'block';
+            if (yearSelect) yearSelect.disabled = false;
         }
-    });
-    });
+    }
+
+    function initCharts() {
+        const filterTypeSelect = document.getElementById('filterTypeSelect');
+        if (filterTypeSelect) {
+            filterTypeSelect.addEventListener('change', toggleFilterControls);
+            toggleFilterControls();
+        }
+
+        const canvas = document.getElementById('revenueChart');
+        if (canvas && typeof Chart !== 'undefined') {
+            const labelsEl = document.getElementById('labels-data');
+            const revenuesEl = document.getElementById('revenues-data');
+            const labels = labelsEl ? JSON.parse(labelsEl.textContent || '[]') : [];
+            const revenues = revenuesEl ? JSON.parse(revenuesEl.textContent || '[]') : [];
+            const ctx = canvas.getContext('2d');
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(13, 110, 253, 0.85)');
+            gradient.addColorStop(1, 'rgba(13, 110, 253, 0.15)');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Chưa có dữ liệu'],
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: revenues.length > 0 ? revenues : [0],
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        barThickness: labels.length > 5 ? 'flex' : 45
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { font: { family: 'sans-serif', size: 13, weight: '600' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(33, 37, 41, 0.9)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            callbacks: {
+                                label: function (context) {
+                                    let val = context.raw || 0;
+                                    return ' Doanh thu: ' + val.toLocaleString('vi-VN') + ' VNĐ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                font: { size: 12 },
+                                callback: function (value) {
+                                    if (value >= 1e9) return (value / 1e9).toFixed(1) + ' tỷ';
+                                    if (value >= 1e6) return (value / 1e6).toFixed(1) + ' triệu';
+                                    if (value >= 1e3) return (value / 1e3).toFixed(1) + 'k';
+                                    return value.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const dailyCanvas = document.getElementById('dailyRevenueChart');
+        if (dailyCanvas && typeof Chart !== 'undefined') {
+            const dailyLabelsEl = document.getElementById('daily-labels-data');
+            const dailyRevenuesEl = document.getElementById('daily-revenues-data');
+            const dailyLabels = dailyLabelsEl ? JSON.parse(dailyLabelsEl.textContent || '[]') : [];
+            const dailyRevenues = dailyRevenuesEl ? JSON.parse(dailyRevenuesEl.textContent || '[]') : [];
+            const dailyCtx = dailyCanvas.getContext('2d');
+
+            const lineGradient = dailyCtx.createLinearGradient(0, 0, 0, 280);
+            lineGradient.addColorStop(0, 'rgba(25, 135, 84, 0.35)');
+            lineGradient.addColorStop(1, 'rgba(25, 135, 84, 0.01)');
+
+            new Chart(dailyCtx, {
+                type: 'line',
+                data: {
+                    labels: dailyLabels.length > 0 ? dailyLabels : ['Chưa có dữ liệu'],
+                    datasets: [{
+                        label: 'Doanh thu theo ngày (VNĐ)',
+                        data: dailyRevenues.length > 0 ? dailyRevenues : [0],
+                        borderColor: '#198754',
+                        backgroundColor: lineGradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#198754',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { font: { family: 'sans-serif', size: 13, weight: '600' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(33, 37, 41, 0.9)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            callbacks: {
+                                label: function (context) {
+                                    let val = context.raw || 0;
+                                    return ' Doanh thu: ' + val.toLocaleString('vi-VN') + ' VNĐ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                font: { size: 12 },
+                                callback: function (value) {
+                                    if (value >= 1e9) return (value / 1e9).toFixed(1) + ' tỷ';
+                                    if (value >= 1e6) return (value / 1e6).toFixed(1) + ' triệu';
+                                    if (value >= 1e3) return (value / 1e3).toFixed(1) + 'k';
+                                    return value.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener("DOMContentLoaded", initCharts);
+    } else {
+        initCharts();
+    }
 </script>
 {% endblock %}
