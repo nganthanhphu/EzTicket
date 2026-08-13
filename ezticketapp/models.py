@@ -66,6 +66,7 @@ class Event(BaseModel):
     organizer_id = Column(Integer, ForeignKey('user.id'), nullable=False)
     organizer = relationship("User", uselist=False)
     tickets = relationship("EventTicket", backref="event", lazy=True, cascade="all, delete-orphan")
+    is_active = Column(Boolean, default=True)
 
 
 class EventTicket(BaseModel):

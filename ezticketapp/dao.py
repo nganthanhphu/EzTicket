@@ -36,10 +36,12 @@ def load_events(keyword=None, location=None, event_type_id=None, min_price=None,
             query = query.filter(EventTicket.price <= max_price)
         query = query.distinct()
 
+    is_admin = current_user.is_authenticated and current_user.role == Role.ADMIN
     is_organizer = current_user.is_authenticated and current_user.role == Role.ORGANIZER
     is_customer = current_user.is_authenticated and current_user.role == Role.CUSTOMER
 
-    if is_customer:
+    if not (is_admin or is_organizer):
+        query = query.filter(Event.is_active.is_(True))
         query = query.filter(Event.time >= datetime.now())
         query = query.filter(Event.tickets.any(EventTicket.quantity > 0))
 
@@ -486,6 +488,21 @@ def delete_event(event_id):
     except Exception:
         db.session.rollback()
         return False, "Không thể xóa"
+
+# hàm ẩn sự kiện 
+def toggle_event_active(event_id):
+    event = get_event_by_id(event_id)
+    if event is None:
+        return False, "Không tìm thấy sự kiện"
+
+    event.is_active = not bool(event.is_active)
+    try:
+        db.session.commit()
+        status_str = "Hiển thị" if event.is_active else "Ẩn"
+        return True, f"Đã chuyển trạng thái sự kiện sang: {status_str}"
+    except Exception:
+        db.session.rollback()
+        return False, "Không thể thay đổi trạng thái sự kiện"
 
 #doanh thu cua mot su kien 
 #cach su ly xuat phat tu => orderItem => EventTicket =>event

@@ -78,7 +78,7 @@ def register_auth_route(app):
                 flash("Thiếu thông tin đăng nhập.")
                 return render_template("admin/login.html")
 
-            user = User.query.filter(User.email == email).first()
+            user = User.query.filter(User.email.ilike(email)).first()
             if not user:
                 flash("Tài khoản không tồn tại.")
                 return render_template("admin/login.html")

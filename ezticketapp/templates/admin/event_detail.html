@@ -1,0 +1,149 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}
+Chi tiết sự kiện
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>{{ event.name }}</h2>
+        <small class="text-muted">
+            Thông tin chi tiết sự kiện
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="POST" action="{{ url_for('event.toggle_active', event_id=event.id) }}" class="d-inline">
+            {% if event.is_active %}
+            <button type="submit" class="btn btn-secondary">
+                <i class="fa-solid fa-eye-slash"></i> Ẩn sự kiện
+            </button>
+            {% else %}
+            <button type="submit" class="btn btn-success">
+                <i class="fa-solid fa-eye"></i> Hiện sự kiện
+            </button>
+            {% endif %}
+        </form>
+
+        <a class="btn btn-danger" href="{{ url_for('event.delete_event', event_id=event.id) }}"
+            onclick="return confirm('Bạn có chắc chắn muốn xóa sự kiện này không?');">
+            <i class="fa-solid fa-trash"></i> Xóa sự kiện
+        </a>
+
+        <a class="btn btn-outline-secondary" href="{{ url_for('event.index_view') }}">
+            Quay lại
+        </a>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header">
+        Thông tin sự kiện
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <img src="{{ event.image }}" class="img-fluid rounded">
+            </div>
+            <div class="col-md-8">
+                <table class="table">
+                    <tr>
+                        <th width="220">Tên sự kiện</th>
+                        <td>{{ event.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Trạng thái</th>
+                        <td>
+                            {% if event.is_active %}
+                            <span class="badge bg-success">Hiển thị</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Đã ẩn</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Nhà tổ chức</th>
+                        <td>{{ event.organizer.full_name if event.organizer else 'N/A' }} ({{ event.organizer.email if event.organizer else '' }})</td>
+                    </tr>
+                    <tr>
+                        <th>Địa điểm</th>
+                        <td>{{ event.location }}</td>
+                    </tr>
+                    <tr>
+                        <th>Thời gian</th>
+                        <td>{{ event.time.strftime("%d/%m/%Y %H:%M") }}</td>
+                    </tr>
+                    <tr>
+                        <th>Loại</th>
+                        <td>{{ event.event_type.name if event.event_type else '' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Giới hạn mua</th>
+                        <td>{{ event.purchase_limit }}</td>
+                    </tr>
+                    <tr>
+                        <th>Hủy trước</th>
+                        <td>{{ event.cancellation_time_limit_by_hours }} giờ</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header">
+        Danh sách vé
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Loại vé</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                <tr>
+                    <td>{{ ticket.ticket_type.name }}</td>
+                    <td>{{ "{:,.0f}".format(ticket.price) }} VNĐ</td>
+                    <td>{{ ticket.quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-header">
+        Danh sách voucher
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Mã Voucher</th>
+                    <th>% Giảm (trên giá gốc)</th>
+                    <th>SL</th>
+                    <th>Hết hạn</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vouchers %}
+                <tr>
+                    <td>{{ v.code }}</td>
+                    <td>{{ v.discount_percentage }} %</td>
+                    <td>{{ v.quantity }}</td>
+                    <td>{{ v.expiration_date.strftime("%d/%m/%Y") }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
