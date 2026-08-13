@@ -485,3 +485,18 @@ def delete_event(event_id):
     except Exception:
         db.session.rollback()
         return False, "Không thể xóa"
+
+
+def get_paid_user_by_event(event_id):
+    return (
+        db.session.query(User)
+        .join(Order, User.id == Order.user_id)
+        .join(OrderItem, Order.id == OrderItem.order_id)
+        .join(EventTicket, EventTicket.id == OrderItem.event_ticket_id)
+        .filter(
+            EventTicket.event_id == event_id,
+            Order.status == OrderStatus.PAID
+        )
+        .distinct()
+        .all()
+    )
