@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 import cloudinary
+import requests
 from PIL import Image
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import logout_user, login_user, current_user, login_required
@@ -220,15 +221,41 @@ def register_auth_route(app):
 
             order_items = getattr(order, "order_items", None) or []
             ticket_summary = []
+            total_tickets = 0
             for item in order_items:
                 ticket = getattr(item, "event_ticket", None)
                 ticket_type = getattr(getattr(ticket, "ticket_type", None), "name", "Không xác định")
-                ticket_summary.append(f"{ticket_type}: x{getattr(item, 'quantity', 0)}")
+                quantity = getattr(item, 'quantity', 0)
+                total_tickets += quantity
+                ticket_summary.append(f"{ticket_type}: x{quantity}")
 
-            summary = "<div><strong>Sự kiện:</strong> {}</div><div><strong>Mã đơn:</strong> #{}</div><div><strong>Vé:</strong> {}</div>".format(
+            order_date = order.date.strftime("%d/%m/%Y %H:%M") if order.date else "Không xác định"
+            customer_name = getattr(order.user, "full_name", "Không xác định") if order.user else "Không xác định"
+            customer_email = getattr(order.user, "email", "Không xác định") if order.user else "Không xác định"
+
+            summary = """
+            <div class="row">
+                <div class="col-md-6">
+                    <div><strong>Sự kiện:</strong> {}</div>
+                    <div><strong>Mã đơn:</strong> #{}</div>
+                    <div><strong>Ngày đặt:</strong> {}</div>
+                </div>
+                <div class="col-md-6">
+                    <div><strong>Khách hàng:</strong> {}</div>
+                    <div><strong>Email:</strong> {}</div>
+                </div>
+            </div>
+            <hr>
+            <div><strong>Vé đã đặt ({} vé):</strong></div>
+            <div>{}</div>
+            """.format(
                 getattr(event, "name", "Không xác định"),
                 order.id,
-                " | ".join(ticket_summary) if ticket_summary else "Không có thông tin vé"
+                order_date,
+                customer_name,
+                customer_email,
+                total_tickets,
+                "<br>".join(ticket_summary) if ticket_summary else "Không có thông tin vé"
             )
 
             return jsonify({
@@ -237,6 +264,7 @@ def register_auth_route(app):
                 "order_id": order.id,
                 "authentication_code": auth_code,
                 "summary": summary,
+                "qr_image": image_data,
             })
         except Exception as e:
             print(e)
@@ -264,29 +292,63 @@ def register_auth_route(app):
             if not getattr(order, "authentication_face", None):
                 return jsonify({"success": False, "message": "Khách hàng chưa có ảnh xác minh khuôn mặt trong hệ thống."}), 400
 
-            face_url = getattr(order, "authentication_face", None)
-            stored_image = requests.get(face_url, timeout=20)
-            stored_image.raise_for_status()
+            try:
+                face_url = getattr(order, "authentication_face", None)
+                stored_image = requests.get(face_url, timeout=20)
+                stored_image.raise_for_status()
+            except Exception as url_err:
+                print(f"Error fetching stored face image: {url_err}")
+                return jsonify({"success": False, "message": "Không thể tải ảnh xác minh khuôn mặt từ hệ thống."}), 400
 
-            img_bytes = base64.b64decode(image_data)
-            live_image = Image.open(BytesIO(img_bytes))
-            stored_image_obj = Image.open(BytesIO(stored_image.content))
+            try:
+                img_bytes = base64.b64decode(image_data)
+                live_image = Image.open(BytesIO(img_bytes))
+                stored_image_obj = Image.open(BytesIO(stored_image.content))
+            except Exception as img_err:
+                print(f"Error processing images: {img_err}")
+                return jsonify({"success": False, "message": "Lỗi xử lý ảnh. Vui lòng chụp lại."}), 400
 
-            config = types.GenerateContentConfig(
-                system_instruction="Bạn là chuyên gia nhận diện khuôn mặt. Hãy so sánh hai ảnh: ảnh gốc đã lưu trong hệ thống và ảnh chụp mới. Nếu là cùng một người và đủ điều kiện nhận diện, hãy trả về đúng dòng 'MATCH'. Nếu không khớp, trả về 'NO_MATCH'."
-            )
+            try:
+                config = types.GenerateContentConfig(
+                    system_instruction="Bạn là chuyên gia nhận diện khuôn mặt. Hãy so sánh hai ảnh: ảnh gốc đã lưu trong hệ thống và ảnh chụp mới. Nếu là cùng một người và đủ điều kiện nhận diện, hãy trả về đúng dòng 'MATCH'. Nếu không khớp, trả về 'NO_MATCH'."
+                )
 
-            response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash-lite",
-                contents=[stored_image_obj, live_image],
-                config=config,
-            )
-            result = (response.text or "").strip().upper()
-            if result == "MATCH":
-                return jsonify({"success": True, "message": "Khuôn mặt khớp. Bạn có thể xác nhận vé."})
-            return jsonify({"success": False, "message": "Khuôn mặt không khớp. Vui lòng thử lại."}), 400
+
+                models_to_try = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-pro"]
+                response = None
+                last_error = None
+                
+                for model_name in models_to_try:
+                    try:
+                        print(f"Trying model: {model_name}")
+                        response = gemini_client.models.generate_content(
+                            model=model_name,
+                            contents=[stored_image_obj, live_image],
+                            config=config,
+                        )
+                        print(f"Model {model_name} succeeded")
+                        break
+                    except Exception as model_err:
+                        print(f"Model {model_name} failed: {model_err}")
+                        last_error = model_err
+                        continue
+                
+                if response is None:
+                    raise Exception(f"All models failed. Last error: {last_error}")
+                
+                result = (response.text or "").strip().upper()
+                print(f"Face verification result: {result}")
+                
+                if result == "MATCH":
+                    return jsonify({"success": True, "message": "Khuôn mặt khớp. Bạn có thể xác nhận vé."})
+                else:
+                    return jsonify({"success": False, "message": "Khuôn mặt không khớp. Vui lòng thử lại."}), 400
+            except Exception as ai_err:
+                print(f"Error during face recognition: {ai_err}")
+                return jsonify({"success": False, "message": "Lỗi trong quá trình nhận diện khuôn mặt. Vui lòng thử lại."}), 400
+                
         except Exception as e:
-            print(e)
+            print(f"Unexpected error in face verification: {e}")
             return jsonify({"success": False, "message": "Không thể xử lý ảnh khuôn mặt."}), 500
 
     @app.route("/organizer/verify-ticket/confirm", methods=["POST"])
@@ -326,9 +388,6 @@ def register_auth_route(app):
         success, message = dao.delete_event(event_id)
         flash(message)
         return redirect(url_for("organizer_events"))
-
-
-
 
     @app.route("/organizer/events")
     @login_required

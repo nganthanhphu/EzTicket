@@ -8,51 +8,173 @@ Xác thực vé
 <div class="card shadow">
     <div class="card-header">
         <h4 class="mb-0">Xác thực vé</h4>
+        <small class="text-muted">Trang chủ / Xác thực vé</small>
     </div>
     <div class="card-body">
-        <div id="verification-loading" class="alert alert-info" style="display:none;">Đang xử lý...</div>
-        <div id="verification-result"></div>
+        <div id="verification-loading" class="alert alert-info" style="display:none;">
+            <strong>Đang xử lý...</strong> Vui lòng chờ
+        </div>
 
-        <div id="verification-step-qr">
-            <h5>Bước 1: Quét mã QR</h5>
-            <button id="btnScanQr" class="btn btn-primary mb-3">Mở camera QR</button>
-            <div id="verification-qr-capture" style="display:none;">
-                <video id="verification-qr-video" autoplay playsinline class="rounded" style="max-width:100%; max-height:320px;"></video>
-                <canvas id="verification-qr-canvas" style="display:none;"></canvas>
-                <div class="mt-2">
-                    <button id="btnCaptureQr" class="btn btn-success">Chụp mã QR</button>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="border border-primary rounded p-4 mb-4">
+                    <h5 class="mb-4"><strong>1. Quét mã QR (QR Code)</strong></h5>
+                    
+                    <div id="verification-qr-capture" style="display:none;" class="mb-3">
+                        <div class="border border-info rounded p-3 mb-3" style="background-color: #f0f8ff; position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <video id="verification-qr-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                            <canvas id="verification-qr-canvas" style="display:none;"></canvas>
+                        </div>
+                        <button id="btnCaptureQr" class="btn btn-success w-100 mb-2">📸 Chụp mã QR</button>
+                    </div>
+
+                    <div id="verification-qr-preview" style="display:none;" class="mb-3">
+                        <div class="border border-success rounded p-2 mb-3" style="background-color: #f0fff4;">
+                            <img id="qr-preview-image" style="width: 100%; height: auto; border-radius: 4px;">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button id="btnScanQrNew" class="btn btn-primary flex-grow-1">🔄 Quét mới</button>
+                        </div>
+                    </div>
+
+                    <div id="verification-qr-start" style="display:block;">
+                        <button id="btnScanQr" class="btn btn-primary w-100 mb-3" style="padding: 50px 20px; font-size: 16px;">
+                            Đặt mã QR vào khung để quét
+                        </button>
+                    </div>
+
+                    <div id="verification-qr-result" style="display:none;">
+                        <div class="card border-success mb-3">
+                            <div class="card-header bg-success text-white">
+                                Kết quả xác thực mã QR
+                            </div>
+                            <div class="card-body" id="verification-qr-result-content">
+                                Chưa có kết quả
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="verification-qr-error" style="display:none;">
+                        <div class="card border-danger mb-3">
+                            <div class="card-header bg-danger text-white">
+                                Kết quả xác thực mã QR
+                            </div>
+                            <div class="card-body text-danger" id="verification-qr-error-content">
+                                Chưa có kết quả
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="border border-primary rounded p-4 mb-4">
+                    <h5 class="mb-4"><strong>2. Quét khuôn mặt khách</strong></h5>
+                    
+                    <div id="verification-face-capture" style="display:none;" class="mb-3">
+                        <div class="border border-info rounded p-3 mb-3" style="background-color: #f0f8ff; position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <video id="verification-face-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                            <canvas id="verification-face-canvas" style="display:none;"></canvas>
+                        </div>
+                        <button id="btnCaptureFace" class="btn btn-success w-100 mb-2">📸 Chụp khuôn mặt</button>
+                    </div>
+
+                    <div id="verification-face-preview" style="display:none;" class="mb-3">
+                        <div class="border border-success rounded p-2 mb-3" style="background-color: #f0fff4;">
+                            <img id="face-preview-image" style="width: 100%; height: auto; border-radius: 4px;">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button id="btnScanFaceNew" class="btn btn-primary flex-grow-1">🔄 Chụp lại</button>
+                        </div>
+                    </div>
+
+                    <div id="verification-face-start" style="display:none;">
+                        <button id="btnScanFace" class="btn btn-primary w-100 mb-3" style="padding: 50px 20px; font-size: 16px;" disabled>
+                            📷 Bắt đầu quét khuôn mặt
+                        </button>
+                    </div>
+
+                    <div id="verification-face-result" style="display:none;">
+                        <div class="card border-success mb-3">
+                            <div class="card-header bg-success text-white">
+                                Kết quả xác thực khuôn mặt
+                            </div>
+                            <div class="card-body" id="verification-face-result-content">
+                                Chưa có kết quả
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="verification-face-error" style="display:none;">
+                        <div class="card border-danger mb-3">
+                            <div class="card-header bg-danger text-white">
+                                Kết quả xác thực khuôn mặt
+                            </div>
+                            <div class="card-body text-danger" id="verification-face-error-content">
+                                Chưa có kết quả
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="verification-step-face" style="display:none;">
-            <hr>
-            <h5>Bước 2: Xác thực khuôn mặt</h5>
-            <button id="btnScanFace" class="btn btn-outline-primary mb-3" disabled>Mở camera khuôn mặt</button>
-            <div id="verification-face-capture" style="display:none;">
-                <video id="verification-face-video" autoplay playsinline class="rounded" style="max-width:100%; max-height:320px;"></video>
-                <canvas id="verification-face-canvas" style="display:none;"></canvas>
-                <div class="mt-2">
-                    <button id="btnCaptureFace" class="btn btn-success">Chụp khuôn mặt</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="verification-summary" class="mt-4" style="display:none;">
+        <div id="verification-summary" style="display:none;" class="mb-4">
             <div class="card border-info">
-                <div class="card-body">
-                    <h6>Thông tin đơn hàng</h6>
-                    <div id="verification-summary-content"></div>
+                <div class="card-header bg-info text-white">
+                    <strong>Thông tin đơn hàng</strong>
+                </div>
+                <div class="card-body" id="verification-summary-content">
                 </div>
             </div>
         </div>
 
-        <div class="mt-4">
-            <button id="btnConfirmVerify" class="btn btn-success" disabled>Xác nhận</button>
-            <button id="btnResetVerification" class="btn btn-secondary" style="display:none;">Quét mới</button>
+        <div id="verification-final-result" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <strong>Kết quả cuối cùng</strong>
+                </div>
+                <div class="card-body" id="verification-final-result-content">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2 justify-content-center">
+            <button id="btnConfirmVerify" class="btn btn-success btn-lg" style="padding: 12px 40px; font-size: 16px;" disabled>
+                ✓ Xác nhận hoàn thành
+            </button>
+            <button id="btnResetVerification" class="btn btn-secondary btn-lg" style="padding: 12px 40px; font-size: 16px; display:none;">
+                🔄 Quét mới
+            </button>
         </div>
     </div>
 </div>
+
+<style>
+.verification-status {
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.verification-status.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.verification-status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.verification-status.pending {
+    background-color: #e7d4f5;
+    color: #721c24;
+    border: 1px solid #d1c4e9;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
