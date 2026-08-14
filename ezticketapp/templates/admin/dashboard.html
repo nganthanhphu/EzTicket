@@ -64,7 +64,7 @@
                                 <option value="month" {% if selected_filter_type=='month' or (selected_month and not
                                     selected_quarter and not selected_filter_type) %}selected{% endif %}>Theo Tháng
                                 </option>
-                                <option value="date" {% if selected_filter_type=='date' or (selected_date_val and not
+                                <option value="date" {% if selected_filter_type=='date' or not selected_filter_type or (selected_date_val and not
                                     selected_filter_type) %}selected{% endif %}>Theo Ngày (Ngày cụ thể)</option>
                                 <option value="week" {% if selected_filter_type=='week' or (selected_week_date and not
                                     selected_filter_type) %}selected{% endif %}>Theo Tuần (Tuần theo ngày)</option>
