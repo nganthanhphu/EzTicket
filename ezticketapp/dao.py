@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, date
 
 from flask import current_app
 from flask_login import current_user
-from sqlalchemy import case, func,extract
+from sqlalchemy import case, func, extract
 
 from ezticketapp import db
 from .models import Order, Order, OrderItem, OrderStatus, PaymentMethod, User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender, Voucher
@@ -149,7 +149,8 @@ def get_vouchers_by_event_id(event_id, only_available=True):
     query = Voucher.query.filter(Voucher.event_id == event_id)
 
     if only_available:
-        query = query.filter(Voucher.expiration_date >= datetime.now(), Voucher.quantity > 0)
+        query = query.filter(Voucher.expiration_date >=
+                             datetime.now(), Voucher.quantity > 0)
 
     return query.order_by(Voucher.discount_percentage.desc()).all()
 
@@ -164,7 +165,8 @@ def count_ordered_tickets(user_id, event_id):
 
 
 def add_order(user_id, event_id, order_items, total_price, voucher_id=None, payment_method_id=None):
-    auth_code = hashlib.md5(f"{user_id}{event_id}{datetime.now()}".encode("utf-8")).hexdigest()
+    auth_code = hashlib.md5(
+        f"{user_id}{event_id}{datetime.now()}".encode("utf-8")).hexdigest()
 
     order = Order(
         user_id=user_id,
@@ -173,7 +175,7 @@ def add_order(user_id, event_id, order_items, total_price, voucher_id=None, paym
         date=datetime.now(),
         voucher_id=voucher_id,
         payment_method_id=payment_method_id,
-        order_items = order_items
+        order_items=order_items
     )
     db.session.add(order)
     return order
@@ -181,6 +183,7 @@ def add_order(user_id, event_id, order_items, total_price, voucher_id=None, paym
 
 def get_order_by_id(order_id):
     return Order.query.get(order_id)
+
 
 def update_order(order_id, status=None, authentication_face=None):
     order = get_order_by_id(order_id)
@@ -193,6 +196,7 @@ def update_order(order_id, status=None, authentication_face=None):
         order.authentication_face = authentication_face
 
     return order
+
 
 def update_tickets_quantity(order_items, is_increase=False):
     for item in order_items:
@@ -219,6 +223,7 @@ def update_voucher_quantity(voucher_id, is_increase=False):
                 voucher.quantity -= 1
             else:
                 raise ValueError("Số lượng voucher không hợp lệ!")
+
 
 def load_my_events():
     if not current_user.is_authenticated:
@@ -394,8 +399,10 @@ def update_event(event, form, image_url=None):
     elif (form.get("image") or "").strip():
         event.image = (form.get("image") or "").strip()
 
-    event.purchase_limit = int(form.get("purchase_limit", event.purchase_limit))
-    event.cancellation_time_limit_by_hours = int(form.get("cancel_limit", event.cancellation_time_limit_by_hours))
+    event.purchase_limit = int(
+        form.get("purchase_limit", event.purchase_limit))
+    event.cancellation_time_limit_by_hours = int(
+        form.get("cancel_limit", event.cancellation_time_limit_by_hours))
 
     if form.get("time"):
         event.time = datetime.strptime(form.get("time"), "%Y-%m-%dT%H:%M")
@@ -453,12 +460,13 @@ def suggest_ticket_price(ticket_id):
     # Con hon 30% ve va con duoi 7 ngay -> Goi y giam 30% gia ve
     if remaining_percent > 30 and 0 <= days_left <= 7:
         return round(ticket.price * 0.7, -3)
-        
+
     # Con hon 30% ve va con duoi  20 ngay -> Goi y giam 30% gia ve
     if remaining_percent > 30 and 0 <= days_left <= 20:
         return round(ticket.price * 0.85, -3)
-    
+
     return ticket.price
+
 
 def has_order(event_id):
     return (
@@ -473,6 +481,7 @@ def has_order(event_id):
         is not None
     )
 
+
 def delete_event(event_id):
     event = get_event_by_id(event_id)
     if event is None:
@@ -480,7 +489,7 @@ def delete_event(event_id):
 
     if has_order(event_id):
         return False, "Không thể xóa sự kiện đã có đã bán được vé"
-    
+
     try:
         db.session.delete(event)
         db.session.commit()
@@ -489,7 +498,9 @@ def delete_event(event_id):
         db.session.rollback()
         return False, "Không thể xóa"
 
-# hàm ẩn sự kiện 
+# hàm ẩn sự kiện
+
+
 def toggle_event_active(event_id):
     event = get_event_by_id(event_id)
     if event is None:
@@ -504,8 +515,10 @@ def toggle_event_active(event_id):
         db.session.rollback()
         return False, "Không thể thay đổi trạng thái sự kiện"
 
-#doanh thu cua mot su kien 
-#cach su ly xuat phat tu => orderItem => EventTicket =>event
+# doanh thu cua mot su kien
+# cach su ly xuat phat tu => orderItem => EventTicket =>event
+
+
 def revenue_event(event_id, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
     event = get_event_by_id(event_id)
     if event is None:
@@ -524,10 +537,11 @@ def revenue_event(event_id, filter_type=None, date_val=None, week_date=None, mon
             Order,
             OrderItem.order_id == Order.id
         )
-        #do momo bị lỗi để trang thái Pending đỡ
+        # do momo bị lỗi để trang thái Pending đỡ
         .filter(
             EventTicket.event_id == event_id,
-            Order.status.in_([OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.PENDING])
+            Order.status.in_(
+                [OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.PENDING])
         )
     )
 
@@ -579,7 +593,7 @@ def revenue_event(event_id, filter_type=None, date_val=None, week_date=None, mon
     return query.scalar() or 0
 
 
-#dành cho admin 
+# dành cho admin
 
 # Lay top 5 su kien co doanh thu cao nhat
 def get_top_revenue_events(limit=5, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
@@ -603,13 +617,13 @@ def get_top_revenue_events(limit=5, filter_type=None, date_val=None, week_date=N
     return event_list[:limit]
 
 
-
-
 # Lay tat ca su kien trong he thong cho Admin
 def get_all_events():
     return Event.query.order_by(Event.time.asc()).all()
 
 # Lay top 5 su kien co doanh thu cao nhat toan he thong cho Admin
+
+
 def get_admin_top_revenue_events(limit=5, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
     events = get_all_events()
     event_list = []
@@ -667,11 +681,12 @@ def get_all_events_revenue(organizer_id=None, filter_type=None, date_val=None, w
     return labels, revenues
 
 
-#doanh thu Line Chart  theo kiểu lọc (Năm, Quý, Tháng, Tuần, Ngày)
+# doanh thu Line Chart  theo kiểu lọc (Năm, Quý, Tháng, Tuần, Ngày)
 def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, week_date=None, month=None, quarter=None, year=None):
     import calendar
 
-    valid_statuses = [OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.PENDING]
+    valid_statuses = [OrderStatus.PAID,
+                      OrderStatus.COMPLETED, OrderStatus.PENDING]
 
     # 1.Thống kê 12 Tháng trong Năm
     if filter_type == 'year' or (year and not month and not quarter and not filter_type):
@@ -679,7 +694,8 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
         query = (
             db.session.query(
                 extract("month", Order.date).label('m'),
-                func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+                func.sum(OrderItem.quantity *
+                         EventTicket.price).label('revenue')
             )
             .join(OrderItem, OrderItem.order_id == Order.id)
             .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
@@ -692,8 +708,9 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
         if organizer_id:
             query = query.filter(Event.organizer_id == organizer_id)
         results = query.group_by(extract("month", Order.date)).all()
-        month_map = {int(r.m): float(r.revenue or 0) for r in results if r.m is not None}
-        
+        month_map = {int(r.m): float(r.revenue or 0)
+                     for r in results if r.m is not None}
+
         labels = [f"Tháng {m}" for m in range(1, 13)]
         revenues = [month_map.get(m, 0.0) for m in range(1, 13)]
         return labels, revenues
@@ -704,11 +721,12 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
         target_year = year or datetime.now().year
         start_m = (target_quarter - 1) * 3 + 1
         quarter_months = [start_m, start_m + 1, start_m + 2]
-        
+
         query = (
             db.session.query(
                 extract("month", Order.date).label('m'),
-                func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+                func.sum(OrderItem.quantity *
+                         EventTicket.price).label('revenue')
             )
             .join(OrderItem, OrderItem.order_id == Order.id)
             .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
@@ -722,8 +740,9 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
         if organizer_id:
             query = query.filter(Event.organizer_id == organizer_id)
         results = query.group_by(extract("month", Order.date)).all()
-        month_map = {int(r.m): float(r.revenue or 0) for r in results if r.m is not None}
-        
+        month_map = {int(r.m): float(r.revenue or 0)
+                     for r in results if r.m is not None}
+
         labels = [f"Tháng {m}" for m in quarter_months]
         revenues = [month_map.get(m, 0.0) for m in quarter_months]
         return labels, revenues
@@ -737,11 +756,12 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
                 w_d = week_date
             start_of_week = w_d - timedelta(days=w_d.weekday())
             end_of_week = start_of_week + timedelta(days=6)
-            
+
             query = (
                 db.session.query(
                     func.date(Order.date).label('day'),
-                    func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+                    func.sum(OrderItem.quantity *
+                             EventTicket.price).label('revenue')
                 )
                 .join(OrderItem, OrderItem.order_id == Order.id)
                 .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
@@ -755,9 +775,11 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
             if organizer_id:
                 query = query.filter(Event.organizer_id == organizer_id)
             results = query.group_by(func.date(Order.date)).all()
-            day_map = {str(r.day): float(r.revenue or 0) for r in results if r.day is not None}
+            day_map = {str(r.day): float(r.revenue or 0)
+                       for r in results if r.day is not None}
 
-            day_names = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"]
+            day_names = ["Thứ 2", "Thứ 3", "Thứ 4",
+                         "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"]
             labels = []
             revenues = []
             for i in range(7):
@@ -784,7 +806,8 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
             query = (
                 db.session.query(
                     extract("hour", Order.date).label('h'),
-                    func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+                    func.sum(OrderItem.quantity *
+                             EventTicket.price).label('revenue')
                 )
                 .join(OrderItem, OrderItem.order_id == Order.id)
                 .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
@@ -798,7 +821,8 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
             if organizer_id:
                 query = query.filter(Event.organizer_id == organizer_id)
             results = query.group_by(extract("hour", Order.date)).all()
-            hour_map = {int(r.h): float(r.revenue or 0) for r in results if r.h is not None}
+            hour_map = {int(r.h): float(r.revenue or 0)
+                        for r in results if r.h is not None}
 
             labels = [f"{h:02d}:00" for h in range(24)]
             revenues = [hour_map.get(h, 0.0) for h in range(24)]
@@ -829,14 +853,13 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
     if organizer_id:
         query = query.filter(Event.organizer_id == organizer_id)
     results = query.group_by(extract("day", Order.date)).all()
-    day_map = {int(r.d): float(r.revenue or 0) for r in results if r.d is not None}
+    day_map = {int(r.d): float(r.revenue or 0)
+               for r in results if r.d is not None}
 
     labels = [f"Ngày {d}" for d in range(1, num_days + 1)]
     revenues = [day_map.get(d, 0.0) for d in range(1, num_days + 1)]
 
     return labels, revenues
-
-
 
 
 def get_paid_user_by_event(event_id):

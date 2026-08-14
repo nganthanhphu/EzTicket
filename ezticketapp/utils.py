@@ -198,7 +198,8 @@ def can_cancel_order(order, current_time=None):
     if event.time <= current_time:
         return False
 
-    deadline = order.date + datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
+    deadline = order.date + \
+        datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
     return current_time <= deadline
 
 
@@ -234,4 +235,5 @@ def handle_event_info_change_notification(event):
     from ezticketapp import dao
     users = dao.get_paid_user_by_event(event.id)
     user_ids = [user.id for user in users]
-    send_inapp_notification(user_ids, "Thông báo thay đổi thông tin sự kiện", f"Thông tin sự kiện {event.name} bạn đã mua vé đã được thay đổi. Vui lòng kiểm tra lại thông tin sự kiện.")
+    send_inapp_notification(user_ids, "Thông báo thay đổi thông tin sự kiện",
+                            f"Thông tin sự kiện {event.name} bạn đã mua vé đã được thay đổi. Vui lòng kiểm tra lại thông tin sự kiện.")

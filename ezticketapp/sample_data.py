@@ -89,14 +89,22 @@ def create_sample_data():
 
         # ===================== CUSTOMER PROFILES =====================
         profiles = [
-            CustomerProfile(user_id=users[4].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[3].id),
-            CustomerProfile(user_id=users[5].id, gender=Gender.MALE, preferred_event_type_id=event_types[0].id),
-            CustomerProfile(user_id=users[6].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[2].id),
-            CustomerProfile(user_id=users[7].id, gender=Gender.MALE, preferred_event_type_id=event_types[1].id),
-            CustomerProfile(user_id=users[8].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[4].id),
-            CustomerProfile(user_id=users[9].id, gender=Gender.MALE, preferred_event_type_id=event_types[0].id),
-            CustomerProfile(user_id=users[10].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[3].id),
-            CustomerProfile(user_id=users[11].id, gender=Gender.MALE, preferred_event_type_id=event_types[1].id),
+            CustomerProfile(
+                user_id=users[4].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[3].id),
+            CustomerProfile(
+                user_id=users[5].id, gender=Gender.MALE, preferred_event_type_id=event_types[0].id),
+            CustomerProfile(
+                user_id=users[6].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[2].id),
+            CustomerProfile(
+                user_id=users[7].id, gender=Gender.MALE, preferred_event_type_id=event_types[1].id),
+            CustomerProfile(
+                user_id=users[8].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[4].id),
+            CustomerProfile(
+                user_id=users[9].id, gender=Gender.MALE, preferred_event_type_id=event_types[0].id),
+            CustomerProfile(
+                user_id=users[10].id, gender=Gender.FEMALE, preferred_event_type_id=event_types[3].id),
+            CustomerProfile(
+                user_id=users[11].id, gender=Gender.MALE, preferred_event_type_id=event_types[1].id),
         ]
         db.session.add_all(profiles)
         db.session.flush()
