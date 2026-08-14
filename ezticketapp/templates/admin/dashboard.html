@@ -312,6 +312,9 @@
 
         const canvas = document.getElementById('revenueChart');
         if (canvas && typeof Chart !== 'undefined') {
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) existingChart.destroy();
+
             const labelsEl = document.getElementById('labels-data');
             const revenuesEl = document.getElementById('revenues-data');
             const labels = labelsEl ? JSON.parse(labelsEl.textContent || '[]') : [];
@@ -381,6 +384,9 @@
 
         const dailyCanvas = document.getElementById('dailyRevenueChart');
         if (dailyCanvas && typeof Chart !== 'undefined') {
+            const existingDailyChart = Chart.getChart(dailyCanvas);
+            if (existingDailyChart) existingDailyChart.destroy();
+
             const dailyLabelsEl = document.getElementById('daily-labels-data');
             const dailyRevenuesEl = document.getElementById('daily-revenues-data');
             const dailyLabels = dailyLabelsEl ? JSON.parse(dailyLabelsEl.textContent || '[]') : [];

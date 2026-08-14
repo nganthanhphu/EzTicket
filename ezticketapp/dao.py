@@ -753,21 +753,45 @@ def get_daily_revenue_stats(organizer_id=None, filter_type=None, date_val=None, 
         except Exception:
             pass
 
-    # 4. Thống kê các Ngày trong Tháng
+    # 4. KIỂU LỌC: NGÀY -> Thống kê 24 Khung Giờ trong Ngày (00:00 - 23:00)
     if filter_type == 'date' and date_val:
         try:
             if isinstance(date_val, str):
                 d = datetime.strptime(date_val, "%Y-%m-%d").date()
             else:
                 d = date_val
-            target_month = d.month
-            target_year = d.year
+
+            start_dt = datetime.combine(d, datetime.min.time())
+            end_dt = datetime.combine(d, datetime.max.time())
+
+            query = (
+                db.session.query(
+                    extract("hour", Order.date).label('h'),
+                    func.sum(OrderItem.quantity * EventTicket.price).label('revenue')
+                )
+                .join(OrderItem, OrderItem.order_id == Order.id)
+                .join(EventTicket, OrderItem.event_ticket_id == EventTicket.id)
+                .join(Event, EventTicket.event_id == Event.id)
+                .filter(
+                    Order.status.in_(valid_statuses),
+                    Order.date >= start_dt,
+                    Order.date <= end_dt
+                )
+            )
+            if organizer_id:
+                query = query.filter(Event.organizer_id == organizer_id)
+            results = query.group_by(extract("hour", Order.date)).all()
+            hour_map = {int(r.h): float(r.revenue or 0) for r in results if r.h is not None}
+
+            labels = [f"{h:02d}:00" for h in range(24)]
+            revenues = [hour_map.get(h, 0.0) for h in range(24)]
+            return labels, revenues
         except Exception:
-            target_month = month or datetime.now().month
-            target_year = year or datetime.now().year
-    else:
-        target_month = month or datetime.now().month
-        target_year = year or datetime.now().year
+            pass
+
+    # 5. Thống kê các Ngày trong Tháng (Theo Tháng hoặc mặc định)
+    target_month = month or datetime.now().month
+    target_year = year or datetime.now().year
 
     _, num_days = calendar.monthrange(target_year, target_month)
 
