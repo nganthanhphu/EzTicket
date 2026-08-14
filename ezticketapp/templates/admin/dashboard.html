@@ -143,14 +143,22 @@
                     </form>
                 </div>
 
-                {% if total_revenue == 0 and (selected_year or selected_quarter or selected_month) %}
+                {% if total_revenue == 0 %}
                 <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center mb-3">
                     <i class="fa-solid fa-circle-info fa-lg me-3 text-info"></i>
                     <div>
-                        Không có doanh thu phát sinh trong khoảng thời gian đã chọn
-                        ({% if selected_year %}Năm {{ selected_year }}{% endif %}
-                        {% if selected_quarter %} - Quý {{ selected_quarter }}{% endif %}
-                        {% if selected_month %} - Tháng {{ selected_month }}{% endif %}).
+                        Không có sự kiện nào có doanh thu
+                        {% if selected_filter_type == 'date' and selected_date_val %}
+                        trong ngày {{ selected_date_val }}
+                        {% elif selected_filter_type == 'week' and selected_week_date %}
+                        trong tuần của ngày {{ selected_week_date }}
+                        {% elif selected_filter_type == 'month' and selected_month %}
+                        trong Tháng {{ selected_month }}{% if selected_year %} Năm {{ selected_year }}{% endif %}
+                        {% elif selected_filter_type == 'quarter' and selected_quarter %}
+                        trong Quý {{ selected_quarter }}{% if selected_year %} Năm {{ selected_year }}{% endif %}
+                        {% elif selected_filter_type == 'year' and selected_year %}
+                        trong Năm {{ selected_year }}
+                        {% endif %}.
                     </div>
                 </div>
                 {% endif %}
@@ -203,9 +211,13 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {% if total_revenue > 0 %}
+                                {% set count = namespace(val=0) %}
                                 {% for stat in all_event_stats %}
+                                {% if stat.revenue > 0 %}
+                                {% set count.val = count.val + 1 %}
                                 <tr>
-                                    <td class="fw-bold text-muted">{{ (start_stt or 1) + loop.index0 }}</td>
+                                    <td class="fw-bold text-muted">{{ count.val }}</td>
                                     <td class="fw-semibold text-dark">{{ stat.event.name }}</td>
                                     <td>
                                         <span class="badge bg-light text-dark border fw-normal px-2 py-1">
@@ -217,7 +229,22 @@
                                         {{ "{:,.0f}".format(stat.revenue) }} đ
                                     </td>
                                 </tr>
+                                {% endif %}
                                 {% endfor %}
+                                {% if count.val == 0 %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">
+                                        <i class="fa-solid fa-circle-info me-2"></i>Không có sự kiện nào có doanh thu
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">
+                                        <i class="fa-solid fa-circle-info me-2"></i>Không có sự kiện nào có doanh thu
+                                    </td>
+                                </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -317,8 +344,13 @@
 
             const labelsEl = document.getElementById('labels-data');
             const revenuesEl = document.getElementById('revenues-data');
-            const labels = labelsEl ? JSON.parse(labelsEl.textContent || '[]') : [];
-            const revenues = revenuesEl ? JSON.parse(revenuesEl.textContent || '[]') : [];
+            const rawLabels = labelsEl ? JSON.parse(labelsEl.textContent || '[]') : [];
+            const rawRevenues = revenuesEl ? JSON.parse(revenuesEl.textContent || '[]') : [];
+
+            const validItems = rawLabels.map((lbl, idx) => ({ label: lbl, revenue: rawRevenues[idx] || 0 }))
+                                       .filter(item => item.revenue > 0);
+            const labels = validItems.map(item => item.label);
+            const revenues = validItems.map(item => item.revenue);
             const ctx = canvas.getContext('2d');
 
             const gradient = ctx.createLinearGradient(0, 0, 0, 400);
