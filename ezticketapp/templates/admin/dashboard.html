@@ -1,6 +1,6 @@
-{% extends "organizer/organizer_base.html" %}
+{% extends "admin/admin_base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard Admin{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-2">
@@ -51,7 +51,7 @@
                     </h5>
 
                     <!-- Filter Form -->
-                    <form method="GET" action="{{ url_for('organizer_dashboard') }}" id="revenueFilterForm"
+                    <form method="GET" action="{{ url_for('admin.index') }}" id="revenueFilterForm"
                         class="d-flex flex-nowrap align-items-center gap-2 p-2 bg-light rounded-3 border overflow-x-auto"
                         style="min-height: 50px;">
                         <!-- Select Kiểu Lọc -->
@@ -135,14 +135,13 @@
                                 class="btn btn-primary btn-sm px-3 fw-bold rounded-3 shadow-sm text-nowrap">
                                 <i class="fa-solid fa-filter me-1"></i>Lọc
                             </button>
-                            <a href="{{ url_for('organizer_dashboard') }}"
+                            <a href="{{ url_for('admin.index') }}"
                                 class="btn btn-outline-secondary btn-sm px-3 rounded-3 shadow-sm text-nowrap">
                                 <i class="fa-solid fa-rotate-left me-1"></i>Đặt lại
                             </a>
                         </div>
                     </form>
                 </div>
-
 
                 {% if total_revenue == 0 and (selected_year or selected_quarter or selected_month) %}
                 <div class="alert alert-info border-0 shadow-sm rounded-3 d-flex align-items-center mb-3">
@@ -185,31 +184,70 @@
 
                 <!-- Bảng Thống Kê Doanh Thu Sự Kiện -->
                 <div class="mt-4 pt-3 border-top">
-                    <h6 class="fw-bold text-dark mb-3">
-                        <i class="fa-solid fa-table-list text-primary me-2"></i>Bảng Chi Tiết Doanh Thu
-                    </h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="fa-solid fa-table-list text-primary me-2"></i>Bảng Chi Tiết Doanh Thu
+                        </h6>
+                        {% if total_pages and total_pages > 1 %}
+                        <span class="text-muted small fw-semibold">Trang {{ page }} / {{ total_pages }}</span>
+                        {% endif %}
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 60px;">STT</th>
                                     <th>Tên sự kiện</th>
+                                    <th>Nhà tổ chức</th>
                                     <th class="text-end">Doanh thu (VNĐ)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for label in labels %}
+                                {% for stat in all_event_stats %}
                                 <tr>
-                                    <td class="fw-bold text-muted">{{ loop.index }}</td>
-                                    <td class="fw-semibold text-dark">{{ label }}</td>
+                                    <td class="fw-bold text-muted">{{ (start_stt or 1) + loop.index0 }}</td>
+                                    <td class="fw-semibold text-dark">{{ stat.event.name }}</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border fw-normal px-2 py-1">
+                                            <i class="fa-solid fa-user-tie text-secondary me-1"></i>
+                                            {{ stat.event.organizer.full_name if stat.event.organizer else 'N/A' }}
+                                        </span>
+                                    </td>
                                     <td class="text-end fw-bold text-success">
-                                        {{ "{:,.0f}".format(revenues[loop.index0]) }} đ
+                                        {{ "{:,.0f}".format(stat.revenue) }} đ
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Nút Phân Trang (Pagination) -->
+                    {% if total_pages and total_pages > 1 %}
+                    <div class="d-flex justify-content-center mt-4">
+                        <ul class="pagination pagination-sm mb-0 gap-1">
+                            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                                <a class="page-link rounded-3 px-3 fw-semibold"
+                                    href="{{ url_for('admin.index', page=page-1, filter_type=selected_filter_type, date_val=selected_date_val, week_date=selected_week_date, year=selected_year, quarter=selected_quarter, month=selected_month) }}">
+                                    <i class="fa-solid fa-chevron-left me-1"></i>Trước
+                                </a>
+                            </li>
+                            {% for p in range(1, total_pages + 1) %}
+                            <li class="page-item {% if p == page %}active{% endif %}">
+                                <a class="page-link rounded-3 fw-bold px-3"
+                                    href="{{ url_for('admin.index', page=p, filter_type=selected_filter_type, date_val=selected_date_val, week_date=selected_week_date, year=selected_year, quarter=selected_quarter, month=selected_month) }}">{{
+                                    p }}</a>
+                            </li>
+                            {% endfor %}
+                            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                                <a class="page-link rounded-3 px-3 fw-semibold"
+                                    href="{{ url_for('admin.index', page=page+1, filter_type=selected_filter_type, date_val=selected_date_val, week_date=selected_week_date, year=selected_year, quarter=selected_quarter, month=selected_month) }}">
+                                    Sau<i class="fa-solid fa-chevron-right ms-1"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

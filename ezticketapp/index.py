@@ -16,6 +16,10 @@ from ezticketapp.models import Order, OrderItem, User, Gender, OrderStatus, Role
 from google.genai import types
 import base64
 from io import BytesIO
+from ezticketapp.admin import init_admin
+
+init_admin(app)
+
 
 
 def register_routes(app):
@@ -68,6 +72,44 @@ def register_auth_route(app):
     @anonymous_required
     def login():
         return render_template("auth/login.html")
+
+    @app.route("/admin/login", methods=["GET", "POST"])
+    def admin_login():
+        if current_user.is_authenticated and current_user.role == Role.ADMIN:
+            return redirect(url_for("admin.index"))
+
+        if request.method == "POST":
+            email = (request.form.get("email") or "").strip()
+            password = (request.form.get("password") or "").strip()
+
+            if not email or not password:
+                flash("Thiếu thông tin đăng nhập.")
+                return render_template("admin/login.html")
+
+            user = User.query.filter(User.email.ilike(email)).first()
+            if not user:
+                flash("Tài khoản không tồn tại.")
+                return render_template("admin/login.html")
+
+            pwd_hash = hashlib.md5(password.encode("utf-8")).hexdigest()
+            if user.password != password and user.password != pwd_hash:
+                flash("Mật khẩu không đúng.")
+                return render_template("admin/login.html")
+
+            if user.role != Role.ADMIN:
+                flash("Tài khoản của bạn không có quyền Quản trị viên (Admin).")
+                return render_template("admin/login.html")
+
+            if not user.active:
+                flash("Tài khoản của bạn đang chờ duyệt.")
+                return render_template("admin/login.html")
+
+            login_user(user)
+            flash("Đăng nhập Admin thành công.")
+            next_url = request.args.get("next") or url_for("admin.index")
+            return redirect(next_url)
+
+        return render_template("admin/login.html")
 
     @app.route("/register", methods=["GET"])
     @anonymous_required
@@ -181,8 +223,84 @@ def register_auth_route(app):
     @login_required
     @role_required("ORGANIZER")
     def organizer_dashboard():
+        filter_type = request.args.get("filter_type", "").strip()
+        date_val = request.args.get("date_val", "").strip()
+        week_date = request.args.get("week_date", "").strip()
+        year = request.args.get("year", type=int)
+        quarter = request.args.get("quarter", type=int)
+        month = request.args.get("month", type=int)
+
         events = dao.load_my_events()
-        return render_template("organizer/dashboard.html", total_events=len(events))
+
+        # Lấy Top 5 sự kiện có doanh thu cao nhất theo bộ lọc
+        top_5_events = dao.get_top_revenue_events(
+            limit=5,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        )
+        labels = [item['event'].name for item in top_5_events]
+        revenues = [item['revenue'] for item in top_5_events]
+
+        # Tính tổng doanh thu tất cả sự kiện trong khoảng thời gian đã chọn
+        all_revenues = [
+            float(
+                dao.revenue_event(
+                    e.id,
+                    filter_type=filter_type,
+                    date_val=date_val,
+                    week_date=week_date,
+                    month=month,
+                    quarter=quarter,
+                    year=year
+                ) or 0
+            ) for e in events
+        ]
+        total_revenue = sum(all_revenues)
+
+        years = dao.get_revenue_years()
+
+        # Thống kê doanh thu tất cả sự kiện (Line Chart)
+        all_event_labels, all_event_revenues = dao.get_all_events_revenue(
+            organizer_id=current_user.id,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        )
+
+        # Thống kê doanh thu theo ngày (Line Chart)
+        daily_labels, daily_revenues = dao.get_daily_revenue_stats(
+            organizer_id=current_user.id,
+            filter_type=filter_type,
+            date_val=date_val,
+            week_date=week_date,
+            month=month,
+            quarter=quarter,
+            year=year
+        )
+
+        return render_template("organizer/dashboard.html",
+                               total_events=len(events),
+                               labels=labels,
+                               revenues=revenues,
+                               all_event_labels=all_event_labels,
+                               all_event_revenues=all_event_revenues,
+                               daily_labels=daily_labels,
+                               daily_revenues=daily_revenues,
+                               selected_filter_type=filter_type,
+                               selected_date_val=date_val,
+                               selected_week_date=week_date,
+                               selected_year=year,
+                               selected_quarter=quarter,
+                               selected_month=month,
+                               total_revenue=total_revenue,
+                               years=years)
 
     @app.route("/organizer/verify-ticket", methods=["GET"])
     @login_required
@@ -725,6 +843,10 @@ def register_auth_route(app):
         pwd_hash = hashlib.md5(password.encode('utf-8')).hexdigest()
         if user.password != password and user.password != pwd_hash:
             flash("Mật khẩu không đúng.")
+            return redirect(url_for('login'))
+
+        if user.role == Role.ADMIN:
+            flash("Tài khoản Admin không được phép đăng nhập ở trang Khách hàng.")
             return redirect(url_for('login'))
 
         if not user.active:
