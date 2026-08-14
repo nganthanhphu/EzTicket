@@ -1,6 +1,6 @@
 let ticketVerification = {
     stream: null,
-    currentStream: null, // Track current stream separately
+    currentStream: null,
     currentOrderId: null,
     currentOrderCode: null,
     qrResult: null,
@@ -52,6 +52,20 @@ function resetVerificationUI() {
     if (btnConfirmVerify) btnConfirmVerify.disabled = true;
     if (btnResetVerification) btnResetVerification.style.display = 'none';
 
+    const qrSummaryContent = document.getElementById('verification-summary-content');
+    const qrResultContent = document.getElementById('verification-qr-result-content');
+    const qrErrorContent = document.getElementById('verification-qr-error-content');
+    const faceResultContent = document.getElementById('verification-face-result-content');
+    const faceErrorContent = document.getElementById('verification-face-error-content');
+    const finalResultContent = document.getElementById('verification-final-result-content');
+
+    if (qrSummaryContent) qrSummaryContent.innerHTML = '';
+    if (qrResultContent) qrResultContent.innerHTML = 'Chưa có kết quả';
+    if (qrErrorContent) qrErrorContent.innerHTML = 'Chưa có kết quả';
+    if (faceResultContent) faceResultContent.innerHTML = 'Chưa có kết quả';
+    if (faceErrorContent) faceErrorContent.innerHTML = 'Chưa có kết quả';
+    if (finalResultContent) finalResultContent.innerHTML = '';
+
     ticketVerification.currentOrderId = null;
     ticketVerification.currentOrderCode = null;
     ticketVerification.qrResult = null;
@@ -60,6 +74,28 @@ function resetVerificationUI() {
     ticketVerification.faceVerified = false;
     ticketVerification.qrImage = null;
     ticketVerification.faceImage = null;
+}
+
+function restartVerificationFlow() {
+    stopVerificationStream();
+    resetVerificationUI();
+    setTimeout(function () {
+        openQrCamera();
+    }, 50);
+}
+
+function triggerFreshScan() {
+    window.location.reload();
+}
+
+function showSingleResetButton() {
+    const btnResetVerification = document.getElementById('btnResetVerification');
+    const btnScanQrNew = document.getElementById('btnScanQrNew');
+    const btnScanFaceNew = document.getElementById('btnScanFaceNew');
+
+    if (btnResetVerification) btnResetVerification.style.display = 'inline-block';
+    if (btnScanQrNew) btnScanQrNew.style.display = 'none';
+    if (btnScanFaceNew) btnScanFaceNew.style.display = 'none';
 }
 
 function stopVerificationStream() {
@@ -168,18 +204,11 @@ function captureQrImage() {
 
             updateConfirmButton();
         } else {
-            // Show error and auto-reopen camera
             document.getElementById('verification-qr-error').style.display = 'block';
             document.getElementById('verification-qr-error-content').innerHTML = 
-                '<div class="verification-status error">✗ ' + data.message + '</div>' +
-                '<small>Camera sẽ tự mở lại trong 2 giây...</small>';
-            
+                '<div class="verification-status error">✗ ' + data.message + '</div>';
             document.getElementById('verification-qr-result').style.display = 'none';
-            
-            // Auto-reopen camera after 2 seconds
-            setTimeout(() => {
-                openQrCamera();
-            }, 2000);
+            showSingleResetButton();
         }
     })
     .catch(function (err) {
@@ -188,11 +217,7 @@ function captureQrImage() {
         document.getElementById('verification-qr-error-content').innerHTML = 
             '<div class="verification-status error">✗ Đã xảy ra lỗi: ' + err.message + '</div>';
         document.getElementById('verification-qr-result').style.display = 'none';
-        
-        // Auto-reopen camera after 2 seconds
-        setTimeout(() => {
-            openQrCamera();
-        }, 2000);
+        showSingleResetButton();
     })
     .finally(function () {
         document.getElementById('verification-loading').style.display = 'none';
@@ -200,11 +225,7 @@ function captureQrImage() {
 }
 
 function resetQrScan() {
-    document.getElementById('verification-qr-result').style.display = 'none';
-    document.getElementById('verification-qr-error').style.display = 'none';
-    document.getElementById('verification-qr-preview').style.display = 'none';
-    ticketVerification.qrVerified = false;
-    openQrCamera();
+    triggerFreshScan();
 }
 
 function openFaceCamera() {
@@ -291,17 +312,11 @@ function captureFaceImage() {
 
             updateConfirmButton();
         } else {
-            // Show error
             document.getElementById('verification-face-error').style.display = 'block';
             document.getElementById('verification-face-error-content').innerHTML = 
                 '<div class="verification-status error">✗ ' + data.message + '</div>';
             document.getElementById('verification-face-result').style.display = 'none';
-            
-            // Show preview and retake button
-            document.getElementById('verification-face-start').style.display = 'none';
-            document.getElementById('verification-face-capture').style.display = 'none';
-            document.getElementById('verification-face-preview').style.display = 'block';
-            document.getElementById('face-preview-image').src = ticketVerification.faceImage;
+            showSingleResetButton();
         }
     })
     .catch(function (err) {
@@ -310,12 +325,7 @@ function captureFaceImage() {
         document.getElementById('verification-face-error-content').innerHTML = 
             '<div class="verification-status error">✗ Đã xảy ra lỗi: ' + err.message + '</div>';
         document.getElementById('verification-face-result').style.display = 'none';
-        
-        // Show preview and retake button
-        document.getElementById('verification-face-start').style.display = 'none';
-        document.getElementById('verification-face-capture').style.display = 'none';
-        document.getElementById('verification-face-preview').style.display = 'block';
-        document.getElementById('face-preview-image').src = ticketVerification.faceImage;
+        showSingleResetButton();
     })
     .finally(function () {
         document.getElementById('verification-loading').style.display = 'none';
@@ -323,11 +333,7 @@ function captureFaceImage() {
 }
 
 function resetFaceScan() {
-    document.getElementById('verification-face-result').style.display = 'none';
-    document.getElementById('verification-face-error').style.display = 'none';
-    document.getElementById('verification-face-preview').style.display = 'none';
-    ticketVerification.faceVerified = false;
-    openFaceCamera();
+    triggerFreshScan();
 }
 
 function updateConfirmButton() {
@@ -408,8 +414,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (btnResetVerification) {
         btnResetVerification.addEventListener('click', function () {
-            stopVerificationStream();
-            resetVerificationUI();
+            triggerFreshScan();
         });
     }
     

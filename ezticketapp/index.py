@@ -9,7 +9,7 @@ from PIL import Image
 from flask import jsonify, render_template, request, redirect, url_for, session, flash
 from flask_login import logout_user, login_user, current_user, login_required
 from flask_mail import Message
-from ezticketapp import app, dao, db, utils, gemini_client, mail
+from ezticketapp import app, dao, db, utils, gemini_client, mail, FACE_VERIFICATION_MODELS
 from ezticketapp.decorator import anonymous_required, run_validations, role_required
 from cloudinary.uploader import upload
 from ezticketapp.models import Order, OrderItem, User, Gender, OrderStatus, Role
@@ -314,11 +314,10 @@ def register_auth_route(app):
                 )
 
 
-                models_to_try = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-pro"]
                 response = None
                 last_error = None
-                
-                for model_name in models_to_try:
+
+                for model_name in FACE_VERIFICATION_MODELS:
                     try:
                         print(f"Trying model: {model_name}")
                         response = gemini_client.models.generate_content(
@@ -871,11 +870,22 @@ def register_order_routes(app):
                 system_instruction="Bạn là một chuyên gia nhận diện khuôn mặt. Hãy phân tích bức ảnh được gửi và xác định xem có khuôn mặt nào trong ảnh không, và có nhìn trực diện vào camera không, và có đầy đủ khu vực khuôn mặt không. Nếu có, hãy trả về duy nhất dòng chứa từ True. Nếu không có khuôn mặt nào, hãy trả về duy nhất dòng chứa từ False."
             )
 
-            response = gemini_client.models.generate_content(
-                model="gemini-3.5-flash-lite",
-                contents=[img],
-                config=config
-            )
+            response = None
+            last_error = None
+            for model_name in FACE_VERIFICATION_MODELS:
+                try:
+                    response = gemini_client.models.generate_content(
+                        model=model_name,
+                        contents=[img],
+                        config=config
+                    )
+                    break
+                except Exception as model_err:
+                    last_error = model_err
+                    continue
+
+            if response is None:
+                raise RuntimeError(f"All supported Gemini models failed. Last error: {last_error}")
 
             result_text = response.text.strip().lower()
             has_face = "true" in result_text
