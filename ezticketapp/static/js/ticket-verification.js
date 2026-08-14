@@ -208,7 +208,7 @@ function captureQrImage() {
             document.getElementById('verification-qr-error-content').innerHTML = 
                 '<div class="verification-status error">✗ ' + data.message + '</div>';
             document.getElementById('verification-qr-result').style.display = 'none';
-            showSingleResetButton();
+            setTimeout(function () { openQrCamera(); }, 1500);
         }
     })
     .catch(function (err) {
@@ -217,7 +217,7 @@ function captureQrImage() {
         document.getElementById('verification-qr-error-content').innerHTML = 
             '<div class="verification-status error">✗ Đã xảy ra lỗi: ' + err.message + '</div>';
         document.getElementById('verification-qr-result').style.display = 'none';
-        showSingleResetButton();
+        setTimeout(function () { openQrCamera(); }, 1500);
     })
     .finally(function () {
         document.getElementById('verification-loading').style.display = 'none';
@@ -316,7 +316,7 @@ function captureFaceImage() {
             document.getElementById('verification-face-error-content').innerHTML = 
                 '<div class="verification-status error">✗ ' + data.message + '</div>';
             document.getElementById('verification-face-result').style.display = 'none';
-            showSingleResetButton();
+            setTimeout(function () { openFaceCamera(); }, 1500);
         }
     })
     .catch(function (err) {
@@ -325,7 +325,7 @@ function captureFaceImage() {
         document.getElementById('verification-face-error-content').innerHTML = 
             '<div class="verification-status error">✗ Đã xảy ra lỗi: ' + err.message + '</div>';
         document.getElementById('verification-face-result').style.display = 'none';
-        showSingleResetButton();
+        setTimeout(function () { openFaceCamera(); }, 1500);
     })
     .finally(function () {
         document.getElementById('verification-loading').style.display = 'none';
