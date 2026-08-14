@@ -229,6 +229,13 @@ def register_auth_route(app):
         year = request.args.get("year", type=int)
         quarter = request.args.get("quarter", type=int)
         month = request.args.get("month", type=int)
+        #loc mạc dinh la theo ngay hien tai
+        if not filter_type and not any([week_date, year, quarter, month]):
+            filter_type = "date"
+            if not date_val:
+                date_val = datetime.now().strftime("%Y-%m-%d")
+        elif filter_type == "date" and not date_val:
+            date_val = datetime.now().strftime("%Y-%m-%d")
 
         events = dao.load_my_events()
 

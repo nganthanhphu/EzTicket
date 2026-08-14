@@ -1,5 +1,6 @@
 import hashlib
 import math
+from datetime import datetime
 from flask import redirect, request, url_for, flash
 from flask_login import current_user, logout_user
 from flask_admin import Admin, AdminIndexView, BaseView, expose
@@ -21,6 +22,13 @@ class MyAdminIndex(AdminIndexView):
         year = request.args.get("year", type=int)
         quarter = request.args.get("quarter", type=int)
         month = request.args.get("month", type=int)
+    #loc mac dịnh la theo ngay hien tai
+        if not filter_type and not any([week_date, year, quarter, month]):
+            filter_type = "date"
+            if not date_val:
+                date_val = datetime.now().strftime("%Y-%m-%d")
+        elif filter_type == "date" and not date_val:
+            date_val = datetime.now().strftime("%Y-%m-%d")
 
         events = dao.get_all_events()
 
