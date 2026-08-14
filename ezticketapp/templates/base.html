@@ -60,6 +60,144 @@
     {% endwith %}
     {% block scripts %}{% endblock %}
 
+    {% if current_user.is_authenticated %}
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, update, set } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAq_-JzIBgNY7gMsflgzvUWQYvXTBSzEIw",
+            authDomain: "ezticket-a421a.firebaseapp.com",
+            databaseURL: "https://ezticket-a421a-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "ezticket-a421a",
+            storageBucket: "ezticket-a421a.firebasestorage.app",
+            messagingSenderId: "37141672570",
+            appId: "1:37141672570:web:d34733051b1f42cf3281c3",
+            measurementId: "G-08N3M9R1YL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        const userId = "{{ current_user.id }}";
+        const firebaseCustomToken = "{{ firebase_custom_token }}";
+
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return "Vừa xong";
+            if (diffMins < 60) return `${diffMins} phút trước`;
+            if (diffHours < 24) return `${diffHours} giờ trước`;
+            if (diffDays < 7) return `${diffDays} ngày trước`;
+            return date.toLocaleDateString("vi-VN");
+        }
+
+        function renderNotifications(notifications) {
+            const list = document.getElementById("notification-list");
+            const badge = document.getElementById("notification-badge");
+            if (!list || !badge) return;
+
+            const notifArray = Object.values(notifications || {}).sort(
+                (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            );
+
+            const unreadCount = notifArray.filter(n => !n.is_read).length;
+
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
+                badge.classList.remove("hidden");
+            } else {
+                badge.classList.add("hidden");
+            }
+
+            if (notifArray.length === 0) {
+                list.innerHTML = '<li class="notification-empty">Chưa có thông báo nào</li>';
+                return;
+            }
+
+            const limitedNotifs = notifArray.slice(0, 20);
+
+            list.innerHTML = limitedNotifs.map(notif => `
+                <li class="notification-item ${notif.is_read ? '' : 'unread'}" data-id="${notif.id}">
+                    <div class="notification-item-title">${notif.title}</div>
+                    <div class="notification-item-message">${notif.message}</div>
+                    <div class="notification-item-time">${formatTime(notif.created_at)}</div>
+                </li>
+            `).join("");
+        }
+
+        function listenRealtimeNotifications() {
+            const userNotiRef = ref(database, `notifications/${userId}`);
+            onValue(userNotiRef, (snapshot) => {
+                const data = snapshot.val();
+                renderNotifications(data);
+            });
+        }
+
+        async function markAllRead() {
+            const userNotiRef = ref(database, `notifications/${userId}`);
+            onValue(userNotiRef, (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                const updates = {};
+                for (const key of Object.keys(data)) {
+                    if (!data[key].is_read) {
+                        updates[`notifications/${userId}/${key}/is_read`] = true;
+                    }
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    update(ref(database), updates);
+                }
+            }, { onlyOnce: true });
+        }
+
+        async function init() {
+            try {
+                await signInWithCustomToken(auth, firebaseCustomToken);
+                listenRealtimeNotifications();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        init();
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const bellBtn = document.getElementById("notification-bell-btn");
+            const dropdown = document.getElementById("notification-dropdown");
+            const markAllBtn = document.getElementById("mark-all-read-btn");
+
+            if (bellBtn && dropdown) {
+                bellBtn.addEventListener("click", function (e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle("show");
+                });
+
+                document.addEventListener("click", function (e) {
+                    if (!dropdown.contains(e.target) && e.target !== bellBtn) {
+                        dropdown.classList.remove("show");
+                    }
+                });
+            }
+
+            if (markAllBtn) {
+                markAllBtn.addEventListener("click", function () {
+                    markAllRead();
+                });
+            }
+        });
+
+    </script>
+    {% endif %}
 </body>
 
 </html>
