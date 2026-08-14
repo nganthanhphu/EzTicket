@@ -17,7 +17,8 @@ Quản lý sự kiện
     <div class="card-body p-3">
         <form method="GET" action="{{ url_for('event.index_view') }}" class="row g-2 align-items-center">
             <div class="col-md-10">
-                <input type="text" name="keyword" value="{{ keyword or '' }}" class="form-control" placeholder="Tìm theo tên sự kiện, địa điểm...">
+                <input type="text" name="keyword" value="{{ keyword or '' }}" class="form-control"
+                    placeholder="Tìm theo tên sự kiện, địa điểm...">
             </div>
             <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-primary w-100">

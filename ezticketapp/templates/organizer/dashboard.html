@@ -64,8 +64,9 @@
                                 <option value="month" {% if selected_filter_type=='month' or (selected_month and not
                                     selected_quarter and not selected_filter_type) %}selected{% endif %}>Theo Tháng
                                 </option>
-                                <option value="date" {% if selected_filter_type=='date' or not selected_filter_type or (selected_date_val and not
-                                    selected_filter_type) %}selected{% endif %}>Theo Ngày (Ngày cụ thể)</option>
+                                <option value="date" {% if selected_filter_type=='date' or not selected_filter_type or
+                                    (selected_date_val and not selected_filter_type) %}selected{% endif %}>Theo Ngày
+                                    (Ngày cụ thể)</option>
                                 <option value="week" {% if selected_filter_type=='week' or (selected_week_date and not
                                     selected_filter_type) %}selected{% endif %}>Theo Tuần (Tuần theo ngày)</option>
                                 <option value="year" {% if selected_filter_type=='year' or (selected_year and not
@@ -310,7 +311,7 @@
             const rawRevenues = revenuesEl ? JSON.parse(revenuesEl.textContent || '[]') : [];
 
             const validItems = rawLabels.map((lbl, idx) => ({ label: lbl, revenue: rawRevenues[idx] || 0 }))
-                                       .filter(item => item.revenue > 0);
+                .filter(item => item.revenue > 0);
             const labels = validItems.map(item => item.label);
             const revenues = validItems.map(item => item.revenue);
             const ctx = canvas.getContext('2d');

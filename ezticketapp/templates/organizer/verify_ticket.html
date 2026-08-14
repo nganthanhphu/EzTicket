@@ -19,10 +19,12 @@ Xác thực vé
             <div class="col-lg-6">
                 <div class="border border-primary rounded p-4 mb-4">
                     <h5 class="mb-4"><strong>1. Quét mã QR (QR Code)</strong></h5>
-                    
+
                     <div id="verification-qr-capture" style="display:none;" class="mb-3">
-                        <div class="border border-info rounded p-3 mb-3" style="background-color: #f0f8ff; position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center;">
-                            <video id="verification-qr-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        <div class="border border-info rounded p-3 mb-3"
+                            style="background-color: #f0f8ff; position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <video id="verification-qr-video" autoplay playsinline
+                                style="width: 100%; height: 100%; object-fit: cover;"></video>
                             <canvas id="verification-qr-canvas" style="display:none;"></canvas>
                         </div>
                         <button id="btnCaptureQr" class="btn btn-success w-100 mb-2">📸 Chụp mã QR</button>
@@ -35,7 +37,8 @@ Xác thực vé
                     </div>
 
                     <div id="verification-qr-start" style="display:block;">
-                        <button id="btnScanQr" class="btn btn-primary w-100 mb-3" style="padding: 50px 20px; font-size: 16px;">
+                        <button id="btnScanQr" class="btn btn-primary w-100 mb-3"
+                            style="padding: 50px 20px; font-size: 16px;">
                             Đặt mã QR vào khung để quét
                         </button>
                     </div>
@@ -67,10 +70,12 @@ Xác thực vé
             <div class="col-lg-6">
                 <div class="border border-primary rounded p-4 mb-4">
                     <h5 class="mb-4"><strong>2. Quét khuôn mặt khách</strong></h5>
-                    
+
                     <div id="verification-face-capture" style="display:none;" class="mb-3">
-                        <div class="border border-info rounded p-3 mb-3" style="background-color: #f0f8ff; position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center;">
-                            <video id="verification-face-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        <div class="border border-info rounded p-3 mb-3"
+                            style="background-color: #f0f8ff; position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <video id="verification-face-video" autoplay playsinline
+                                style="width: 100%; height: 100%; object-fit: cover;"></video>
                             <canvas id="verification-face-canvas" style="display:none;"></canvas>
                         </div>
                         <button id="btnCaptureFace" class="btn btn-success w-100 mb-2">📸 Chụp khuôn mặt</button>
@@ -83,7 +88,8 @@ Xác thực vé
                     </div>
 
                     <div id="verification-face-start" style="display:none;">
-                        <button id="btnScanFace" class="btn btn-primary w-100 mb-3" style="padding: 50px 20px; font-size: 16px;" disabled>
+                        <button id="btnScanFace" class="btn btn-primary w-100 mb-3"
+                            style="padding: 50px 20px; font-size: 16px;" disabled>
                             📷 Bắt đầu quét khuôn mặt
                         </button>
                     </div>
@@ -134,10 +140,12 @@ Xác thực vé
         </div>
 
         <div class="mt-4 d-flex gap-2 justify-content-center">
-            <button id="btnConfirmVerify" class="btn btn-success btn-lg" style="padding: 12px 40px; font-size: 16px;" disabled>
+            <button id="btnConfirmVerify" class="btn btn-success btn-lg" style="padding: 12px 40px; font-size: 16px;"
+                disabled>
                 ✓ Xác nhận hoàn thành
             </button>
-            <button id="btnResetVerification" class="btn btn-secondary btn-lg" style="padding: 12px 40px; font-size: 16px; display:none;">
+            <button id="btnResetVerification" class="btn btn-secondary btn-lg"
+                style="padding: 12px 40px; font-size: 16px; display:none;">
                 🔄 Quét mới
             </button>
         </div>
@@ -145,29 +153,32 @@ Xác thực vé
 </div>
 
 <style>
-.verification-status {
-    padding: 10px 15px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.verification-status.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-.verification-status.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-.verification-status.pending {
-    background-color: #e7d4f5;
-    color: #721c24;
-    border: 1px solid #d1c4e9;
-}
+    .verification-status {
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .verification-status.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .verification-status.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .verification-status.pending {
+        background-color: #e7d4f5;
+        color: #721c24;
+        border: 1px solid #d1c4e9;
+    }
 </style>
 {% endblock %}
 

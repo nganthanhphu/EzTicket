@@ -22,7 +22,7 @@ class MyAdminIndex(AdminIndexView):
         year = request.args.get("year", type=int)
         quarter = request.args.get("quarter", type=int)
         month = request.args.get("month", type=int)
-    #loc mac dịnh la theo ngay hien tai
+    # loc mac dịnh la theo ngay hien tai
         if not filter_type and not any([week_date, year, quarter, month]):
             filter_type = "date"
             if not date_val:
@@ -49,7 +49,8 @@ class MyAdminIndex(AdminIndexView):
         per_page = 10
 
         total_items = len(events)
-        total_pages = math.ceil(total_items / per_page) if total_items > 0 else 1
+        total_pages = math.ceil(
+            total_items / per_page) if total_items > 0 else 1
         if page < 1:
             page = 1
         if page > total_pages:
@@ -178,7 +179,8 @@ class EventView(AdminView):
             ]
 
         total_items = len(all_events)
-        total_pages = math.ceil(total_items / per_page) if total_items > 0 else 1
+        total_pages = math.ceil(
+            total_items / per_page) if total_items > 0 else 1
         if page < 1:
             page = 1
         if page > total_pages:
@@ -237,7 +239,8 @@ def init_admin(app):
         index_view=MyAdminIndex(name='Báo Cáo Doanh Thu', url='/admin')
     )
 
-    admin.add_view(EventView(Event, db.session, name="Quản lý sự kiện", endpoint="event"))
+    admin.add_view(EventView(Event, db.session,
+                   name="Quản lý sự kiện", endpoint="event"))
     admin.add_view(LogoutView(name="Đăng xuất"))
 
     return admin
