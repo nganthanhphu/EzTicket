@@ -21,7 +21,6 @@ from ezticketapp.admin import init_admin
 init_admin(app)
 
 
-
 def register_routes(app):
     @app.route("/")
     def home():
@@ -74,6 +73,7 @@ def register_auth_route(app):
         return render_template("auth/login.html")
 
     @app.route("/admin/login", methods=["GET", "POST"])
+    @anonymous_required
     def admin_login():
         if current_user.is_authenticated and current_user.role == Role.ADMIN:
             return redirect(url_for("admin.index"))
@@ -147,13 +147,15 @@ def register_auth_route(app):
 
         event_types = dao.get_event_types()
         genders = list(Gender)
-        orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.date.desc()).all()
+        orders = Order.query.filter_by(
+            user_id=current_user.id).order_by(Order.date.desc()).all()
         return render_template("profile.html", event_types=event_types, genders=genders, orders=orders)
 
     @app.route("/my-tickets")
     @login_required
     def my_tickets():
-        orders = (Order.query.filter_by(user_id=current_user.id).order_by(Order.date.desc()).all())
+        orders = (Order.query.filter_by(
+            user_id=current_user.id).order_by(Order.date.desc()).all())
 
         return render_template("my_tickets.html", orders=orders)
 
@@ -189,7 +191,8 @@ def register_auth_route(app):
         try:
             with db.session.begin_nested():
                 dao.update_order(order_id, status=OrderStatus.CANCELLED)
-                dao.update_tickets_quantity(order.order_items, is_increase=True)
+                dao.update_tickets_quantity(
+                    order.order_items, is_increase=True)
                 dao.update_voucher_quantity(order.voucher_id, is_increase=True)
                 db.session.commit()
 
@@ -218,7 +221,6 @@ def register_auth_route(app):
 
         return redirect(url_for('my_tickets'))
 
-    
     @app.route("/organizer/dashboard")
     @login_required
     @role_required("ORGANIZER")
@@ -229,7 +231,7 @@ def register_auth_route(app):
         year = request.args.get("year", type=int)
         quarter = request.args.get("quarter", type=int)
         month = request.args.get("month", type=int)
-        #loc mạc dinh la theo ngay hien tai
+        # loc mạc dinh la theo ngay hien tai
         if not filter_type and not any([week_date, year, quarter, month]):
             filter_type = "date"
             if not date_val:
@@ -336,8 +338,10 @@ def register_auth_route(app):
             if not decoded:
                 return jsonify({"success": False, "message": "Không đọc được mã QR. Vui lòng chụp lại."}), 400
 
-            auth_code = decoded[0].data.decode("utf-8", errors="ignore").strip()
-            order = Order.query.filter_by(authentication_code=auth_code).first()
+            auth_code = decoded[0].data.decode(
+                "utf-8", errors="ignore").strip()
+            order = Order.query.filter_by(
+                authentication_code=auth_code).first()
             if not order:
                 return jsonify({"success": False, "message": "Mã QR không khớp với đơn hàng hợp lệ."}), 404
 
@@ -347,7 +351,8 @@ def register_auth_route(app):
             if getattr(event, "organizer_id", None) != current_user.id:
                 return jsonify({"success": False, "message": "Đơn hàng không thuộc sự kiện bạn quản lý."}), 403
 
-            order_status = getattr(getattr(order, "status", None), "name", getattr(order, "status", None))
+            order_status = getattr(
+                getattr(order, "status", None), "name", getattr(order, "status", None))
             if order_status != OrderStatus.PAID.name:
                 return jsonify({"success": False, "message": "Đơn hàng chưa ở trạng thái PAID nên chưa thể xác thực."}), 400
 
@@ -356,14 +361,18 @@ def register_auth_route(app):
             total_tickets = 0
             for item in order_items:
                 ticket = getattr(item, "event_ticket", None)
-                ticket_type = getattr(getattr(ticket, "ticket_type", None), "name", "Không xác định")
+                ticket_type = getattr(
+                    getattr(ticket, "ticket_type", None), "name", "Không xác định")
                 quantity = getattr(item, 'quantity', 0)
                 total_tickets += quantity
                 ticket_summary.append(f"{ticket_type}: x{quantity}")
 
-            order_date = order.date.strftime("%d/%m/%Y %H:%M") if order.date else "Không xác định"
-            customer_name = getattr(order.user, "full_name", "Không xác định") if order.user else "Không xác định"
-            customer_email = getattr(order.user, "email", "Không xác định") if order.user else "Không xác định"
+            order_date = order.date.strftime(
+                "%d/%m/%Y %H:%M") if order.date else "Không xác định"
+            customer_name = getattr(
+                order.user, "full_name", "Không xác định") if order.user else "Không xác định"
+            customer_email = getattr(
+                order.user, "email", "Không xác định") if order.user else "Không xác định"
 
             summary = """
             <div class="row">
@@ -387,7 +396,8 @@ def register_auth_route(app):
                 customer_name,
                 customer_email,
                 total_tickets,
-                "<br>".join(ticket_summary) if ticket_summary else "Không có thông tin vé"
+                "<br>".join(
+                    ticket_summary) if ticket_summary else "Không có thông tin vé"
             )
 
             return jsonify({
@@ -445,7 +455,6 @@ def register_auth_route(app):
                     system_instruction="Bạn là chuyên gia nhận diện khuôn mặt. Hãy so sánh hai ảnh: ảnh gốc đã lưu trong hệ thống và ảnh chụp mới. Nếu là cùng một người và đủ điều kiện nhận diện, hãy trả về đúng dòng 'MATCH'. Nếu không khớp, trả về 'NO_MATCH'."
                 )
 
-
                 response = None
                 last_error = None
 
@@ -463,13 +472,14 @@ def register_auth_route(app):
                         print(f"Model {model_name} failed: {model_err}")
                         last_error = model_err
                         continue
-                
+
                 if response is None:
-                    raise Exception(f"All models failed. Last error: {last_error}")
-                
+                    raise Exception(
+                        f"All models failed. Last error: {last_error}")
+
                 result = (response.text or "").strip().upper()
                 print(f"Face verification result: {result}")
-                
+
                 if result == "MATCH":
                     return jsonify({"success": True, "message": "Khuôn mặt khớp. Bạn có thể xác nhận vé."})
                 else:
@@ -477,7 +487,7 @@ def register_auth_route(app):
             except Exception as ai_err:
                 print(f"Error during face recognition: {ai_err}")
                 return jsonify({"success": False, "message": "Lỗi trong quá trình nhận diện khuôn mặt. Vui lòng thử lại."}), 400
-                
+
         except Exception as e:
             print(f"Unexpected error in face verification: {e}")
             return jsonify({"success": False, "message": "Không thể xử lý ảnh khuôn mặt."}), 500
@@ -516,6 +526,19 @@ def register_auth_route(app):
     @login_required
     @role_required("ORGANIZER")
     def organizer_delete_event(event_id):
+        event = dao.get_event_by_id(event_id)
+        if not event:
+            flash("Không tìm thấy sự kiện.")
+            return redirect(url_for("organizer_events"))
+
+        if dao.has_order(event_id):
+            flash("Không thể xóa sự kiện này vì đã có đơn hàng liên quan.")
+            return redirect(url_for("organizer_events"))
+
+        if event.organizer_id != current_user.id:
+            flash("Bạn không có quyền xóa sự kiện này.")
+            return redirect(url_for("organizer_events"))
+
         success, message = dao.delete_event(event_id)
         flash(message)
         return redirect(url_for("organizer_events"))
@@ -553,7 +576,8 @@ def register_auth_route(app):
                 purchase_limit=int(request.form.get("purchase_limit", 1)),
                 cancel_limit=int(request.form.get("cancel_limit", 0)),
                 event_time=request.form.get("time"),
-                event_type_id=int(request.form.get("event_type_id", event_types[0].id)),
+                event_type_id=int(request.form.get(
+                    "event_type_id", event_types[0].id)),
                 organizer_id=current_user.id,
             )
 
@@ -608,12 +632,13 @@ def register_auth_route(app):
             if image_file and image_file.filename:
                 res = cloudinary.uploader.upload(image_file)
                 image_url = res.get("secure_url")
-        
+
             if image_file and image_file.filename and not image_url:
                 flash("Tải ảnh lên thất bại.")
                 return redirect(url_for("organizer_edit_event", event_id=event.id))
 
-            success, message = dao.update_event(event, request.form, image_url=image_url)
+            success, message = dao.update_event(
+                event, request.form, image_url=image_url)
             flash(message)
             if success:
                 utils.handle_event_info_change_notification(event)
@@ -652,7 +677,6 @@ def register_auth_route(app):
         )
         flash(message)
         return redirect(url_for("organizer_edit_event", event_id=event_id))
-    
 
     @app.route("/organizer/tickets/<int:ticket_id>/edit", methods=["POST"])
     @login_required
@@ -703,7 +727,6 @@ def register_auth_route(app):
         flash(message)
         return redirect(url_for("organizer_edit_event", event_id=ticket.event_id))
 
-    
     @app.route("/organizer/events/<int:event_id>/vouchers/create", methods=["POST"])
     @login_required
     @role_required("ORGANIZER")
@@ -713,32 +736,34 @@ def register_auth_route(app):
         if event is None or event.organizer_id != current_user.id:
             flash("Bạn không có quyền.")
             return redirect(url_for("organizer_events"))
-        #lấy input từ form
+        # lấy input từ form
         code = (request.form.get("code") or "").strip().upper()
         discount = float(request.form.get("discount_amount", 0))
         quantity = int(request.form.get("quantity", 0))
         expiration_date_text = request.form.get("expiration_date")
-        #bắt buộc nhập mã voucher và ngày hết hạn
+        # bắt buộc nhập mã voucher và ngày hết hạn
         if not code or not expiration_date_text:
             flash("Vui lòng nhập mã voucher và ngày hết hạn.")
             return redirect(url_for("organizer_edit_event", event_id=event_id))
 
-        voucher_quantity=int(request.form.get("quantity", 0))
-        tickets= dao.load_event_tickets(event_id)
+        voucher_quantity = int(request.form.get("quantity", 0))
+        tickets = dao.load_event_tickets(event_id)
         event_tickets_quantity = sum(ticket.quantity for ticket in tickets)
 
-        #số lượng voucher hok đc nhiều hơn số lượng vé sự kiện đó
-        if(discount <= 1 or discount > 100):
+        # số lượng voucher hok đc nhiều hơn số lượng vé sự kiện đó
+        if (discount <= 1 or discount > 100):
             flash("Giảm giá phải lớn hơn 0 và nhỏ hơn hoặc bằng 100.")
             return redirect(url_for("organizer_edit_event", event_id=event_id))
         if voucher_quantity > event_tickets_quantity or voucher_quantity <= 0:
-            flash("Số lượng voucher không được vượt quá số lượng vé hoặc không được nhỏ hơn 0.")
-            return redirect(url_for("organizer_edit_event", event_id=event_id)) 
+            flash(
+                "Số lượng voucher không được vượt quá số lượng vé hoặc không được nhỏ hơn 0.")
+            return redirect(url_for("organizer_edit_event", event_id=event_id))
         if datetime.strptime(expiration_date_text, "%Y-%m-%d") < datetime.now():
             flash("Ngày hết hạn không được nhỏ hơn ngày hiện tại.")
             return redirect(url_for("organizer_edit_event", event_id=event_id))
         try:
-            expiration_date = datetime.strptime(expiration_date_text, "%Y-%m-%d")
+            expiration_date = datetime.strptime(
+                expiration_date_text, "%Y-%m-%d")
         except ValueError:
             flash("Ngày hết hạn không hợp lệ.")
             return redirect(url_for("organizer_edit_event", event_id=event_id))
@@ -752,15 +777,10 @@ def register_auth_route(app):
         )
 
         flash(message)
-        return redirect(url_for("organizer_edit_event", event_id=event_id)) 
-
-
-
-
-
-
+        return redirect(url_for("organizer_edit_event", event_id=event_id))
 
     @app.route("/api/register", methods=["POST"])
+    @anonymous_required
     def api_register():
         data = request.form
 
@@ -828,6 +848,7 @@ def register_auth_route(app):
             }), 500
 
     @app.route('/api/login', methods=['POST'])
+    @anonymous_required
     def api_login():
         data = request.form
         email = (data.get('email') or '').strip()
@@ -872,6 +893,7 @@ def register_auth_route(app):
         return redirect(url_for('home'))
 
     @app.route('/logout')
+    @login_required
     def logout():
         logout_user()
         return redirect(url_for('home'))
@@ -881,6 +903,7 @@ def register_order_routes(app):
 
     @app.route("/events/<int:event_id>/order", methods=["GET", "POST"])
     @login_required
+    @role_required("CUSTOMER")
     def ticket_order(event_id):
         event = dao.get_event_by_id(event_id)
         max_available_tickets = 0
@@ -932,11 +955,12 @@ def register_order_routes(app):
                         event_ticket_id=ticket.id, quantity=quantity)
                     total_price += quantity * ticket.price
                     order_items.append(item)
-            #cho thang momo lay gia sau khi app voucher neu co
+            # cho thang momo lay gia sau khi app voucher neu co
             if voucher_id:
                 voucher = dao.get_voucher(voucher_id)
                 if voucher:
-                    total_price = total_price * (1 - voucher.discount_percentage / 100)
+                    total_price = total_price * \
+                        (1 - voucher.discount_percentage / 100)
 
             if order_items:
                 try:
@@ -969,10 +993,16 @@ def register_order_routes(app):
         return render_template("ticket_order.html", event=event, num_limit_order=num_limit_order, vouchers=vouchers, payment_methods=payment_methods)
 
     @app.route("/order/<int:order_id>/result")
+    @login_required
+    @role_required("CUSTOMER")
     def payment_result(order_id):
         order = dao.get_order_by_id(order_id)
         if not order:
             flash("Không tìm thấy đơn hàng.")
+            return redirect(url_for("home"))
+
+        if order.user_id != current_user.id:
+            flash("Bạn không có quyền xem đơn hàng này.")
             return redirect(url_for("home"))
 
         return render_template(
@@ -981,6 +1011,8 @@ def register_order_routes(app):
         )
 
     @app.route("/api/face-enroll", methods=["POST"])
+    @login_required
+    @role_required("CUSTOMER")
     def face_enroll_api():
         try:
             order_id = request.json.get("order_id")
@@ -992,6 +1024,12 @@ def register_order_routes(app):
             order = dao.get_order_by_id(order_id)
             if not order:
                 return jsonify({"success": False, "message": "Đơn hàng không tồn tại."}), 404
+
+            if order.user_id != current_user.id:
+                return jsonify({"success": False, "message": "Bạn không có quyền xác minh khuôn mặt cho đơn hàng này."}), 403
+
+            if order.status != OrderStatus.PAID:
+                return jsonify({"success": False, "message": "Đơn hàng không thể xác minh khuôn mặt."}), 400
 
             if order.authentication_face is not None and order.authentication_face != "":
                 return jsonify({"success": False, "message": "Đơn hàng đã được xác minh khuôn mặt."}), 400
@@ -1022,7 +1060,8 @@ def register_order_routes(app):
                     continue
 
             if response is None:
-                raise RuntimeError(f"All supported Gemini models failed. Last error: {last_error}")
+                raise RuntimeError(
+                    f"All supported Gemini models failed. Last error: {last_error}")
 
             result_text = response.text.strip().lower()
             has_face = "true" in result_text
