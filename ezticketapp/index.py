@@ -55,6 +55,13 @@ def register_routes(app):
             event=event
         )
 
+    @app.context_processor
+    def common_attributes():
+        if current_user.is_authenticated:
+            token = utils.get_firebase_custom_token(current_user.id)
+            return dict(firebase_custom_token=token)
+        return dict(firebase_custom_token=None)
+
 
 def register_auth_route(app):
     @app.route("/login", methods=["GET"])
@@ -484,6 +491,7 @@ def register_auth_route(app):
             success, message = dao.update_event(event, request.form, image_url=image_url)
             flash(message)
             if success:
+                utils.handle_event_info_change_notification(event)
                 return redirect(url_for("organizer_event_detail", event_id=event.id))
 
         tickets = dao.load_event_tickets(event.id)

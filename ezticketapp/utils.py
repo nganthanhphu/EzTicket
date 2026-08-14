@@ -10,7 +10,8 @@ import qrcode
 import requests
 from flask import request
 from flask_mail import Message
-
+from firebase_admin import db as firebase_db
+from firebase_admin import auth as firebase_auth
 from ezticketapp.models import OrderStatus
 
 
@@ -200,3 +201,37 @@ def can_cancel_order(order, current_time=None):
     deadline = order.date + datetime.timedelta(hours=event.cancellation_time_limit_by_hours)
     return current_time <= deadline
 
+
+def send_inapp_notification(user_ids, title, message):
+    try:
+        updates = {}
+        for user_id in user_ids:
+            ref = firebase_db.reference(f"notifications/{user_id}")
+            new_noti_ref = ref.push()
+
+            payload = {
+                "id": new_noti_ref.key,
+                "title": title,
+                "message": message,
+                "is_read": False,
+                "created_at": datetime.datetime.now().isoformat()
+            }
+
+            updates[f"notifications/{user_id}/{new_noti_ref.key}"] = payload
+
+        firebase_db.reference().update(updates)
+        return True
+    except Exception as e:
+        return False
+
+
+def get_firebase_custom_token(user_id):
+    custom_token = firebase_auth.create_custom_token(str(user_id))
+    return custom_token.decode('utf-8')
+
+
+def handle_event_info_change_notification(event):
+    from ezticketapp import dao
+    users = dao.get_paid_user_by_event(event.id)
+    user_ids = [user.id for user in users]
+    send_inapp_notification(user_ids, "Thông báo thay đổi thông tin sự kiện", f"Thông tin sự kiện {event.name} bạn đã mua vé đã được thay đổi. Vui lòng kiểm tra lại thông tin sự kiện.")

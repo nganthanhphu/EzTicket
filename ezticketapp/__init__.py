@@ -7,7 +7,8 @@ from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 import cloudinary
 from google import genai
-
+from firebase_admin import credentials
+import firebase_admin
 load_dotenv()
 
 
@@ -57,3 +58,9 @@ app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
 
 mail = Mail(app)
+
+
+cred = credentials.Certificate(os.getenv("FIREBASE_CREDENTIALS_PATH"))
+firebase_admin.initialize_app(cred, {
+    'databaseURL': os.getenv("FIREBASE_DATABASE_URL")
+})
