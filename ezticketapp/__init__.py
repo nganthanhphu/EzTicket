@@ -43,7 +43,10 @@ cloudinary.config(
     api_secret=os.getenv('CLOUDINARY_API_SECRET'),
 )
 
-
+FACE_VERIFICATION_MODELS = [
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+]
 
 
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
