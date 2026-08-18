@@ -190,13 +190,18 @@ class EventView(AdminView):
         end = start + per_page
         paged_events = all_events[start:end]
 
+        report_counts = dao.get_event_reports_stats()
+        reports_grouped = dao.get_all_reports_grouped_by_event()
+
         return self.render(
             'admin/events.html',
             events=paged_events,
             keyword=keyword,
             page=page,
             total_pages=total_pages,
-            total_items=total_items
+            total_items=total_items,
+            report_counts=report_counts,
+            reports_grouped=reports_grouped
         )
 
     @expose('/detail/<int:event_id>')
@@ -207,7 +212,8 @@ class EventView(AdminView):
             return redirect(url_for('event.index_view'))
         tickets = dao.load_event_tickets(event.id)
         vouchers = dao.load_event_vouchers(event.id)
-        return self.render('admin/event_detail.html', event=event, tickets=tickets, vouchers=vouchers)
+        reports = dao.get_event_reports(event.id)
+        return self.render('admin/event_detail.html', event=event, tickets=tickets, vouchers=vouchers, reports=reports)
 
     @expose('/toggle-active/<int:event_id>', methods=['POST'])
     def toggle_active(self, event_id):

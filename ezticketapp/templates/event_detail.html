@@ -75,9 +75,19 @@
 
         <div class="my-4 w-100">
 
-            <a class="btn btn-primary w-100" href="{{ url_for('ticket_order', event_id=event.id) }}">
-                Mua vé ngay
+            <a class="btn btn-primary w-100 mb-2" href="{{ url_for('ticket_order', event_id=event.id) }}">
+                <i class="fa-solid fa-ticket me-1"></i> Mua vé ngay
             </a>
+
+            {% if current_user.is_authenticated %}
+            <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#reportModal">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> Báo cáo sự kiện này
+            </button>
+            {% else %}
+            <a class="btn btn-outline-secondary w-100" href="{{ url_for('login', next=request.path) }}">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> Đăng nhập để báo cáo sự kiện
+            </a>
+            {% endif %}
 
         </div>
 
@@ -137,6 +147,37 @@
 
     </div>
 
+</div>
+
+<!-- Modal Báo Cáo Sự Kiện -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-3">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="reportModalLabel">
+                    <i class="fa-solid fa-flag me-2"></i> Báo cáo sự kiện
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('report_event', event_id=event.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        <i class="fa-solid fa-circle-info me-1"></i> Báo cáo của bạn sẽ được gửi tới Ban quản trị EzTicket để xác minh và xử lý.
+                    </p>
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-bold">Mô tả báo cáo <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Nhập chi tiết mô tả lý do bạn báo cáo sự kiện này..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Gửi báo cáo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
