@@ -1,0 +1,162 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Quản lý tài khoản{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Quản lý tài khoản</h2>
+            <p class="text-muted mb-0">Theo dõi, tạo và khóa/mở trạng thái tài khoản hệ thống.</p>
+        </div>
+        <a href="{{ url_for('admin_create_account') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="fa-solid fa-user-plus me-2"></i>Thêm tài khoản
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted text-uppercase fw-semibold">Tổng</small>
+                        <h4 class="fw-bold text-primary mb-0">{{ total_accounts }}</h4>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle"><i class="fa-solid fa-users"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted text-uppercase fw-semibold">Hoạt động</small>
+                        <h4 class="fw-bold text-success mb-0">{{ total_active }}</h4>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle"><i class="fa-solid fa-user-check"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted text-uppercase fw-semibold">Khóa</small>
+                        <h4 class="fw-bold text-warning mb-0">{{ total_inactive }}</h4>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle"><i class="fa-solid fa-user-lock"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted text-uppercase fw-semibold">Vai trò</small>
+                        <h4 class="fw-bold text-info mb-0">{{ total_organizer + total_customer }}</h4>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info p-3 rounded-circle"><i class="fa-solid fa-shield-halved"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body">
+            <form method="get" action="{{ url_for('admin_accounts') }}" class="row g-3 align-items-end">
+                <div class="col-lg-5">
+                    <label class="form-label fw-semibold">Tìm kiếm</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" name="keyword" class="form-control" value="{{ keyword }}" placeholder="Tên hoặc email...">
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label fw-semibold">Vai trò</label>
+                    <select name="role" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="CUSTOMER" {% if selected_role == 'CUSTOMER' %}selected{% endif %}>Khách hàng</option>
+                        <option value="ORGANIZER" {% if selected_role == 'ORGANIZER' %}selected{% endif %}>Nhà tổ chức</option>
+                        <option value="ADMIN" {% if selected_role == 'ADMIN' %}selected{% endif %}>Admin</option>
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label fw-semibold">Trạng thái</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Hoạt động</option>
+                        <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Khóa</option>
+                    </select>
+                </div>
+                <div class="col-lg-1 d-grid">
+                    <button type="submit" class="btn btn-outline-primary"><i class="fa-solid fa-filter"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Người dùng</th>
+                        <th>Email</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th class="text-center">Hoạt động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if accounts %}
+                        {% for acc in accounts %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <img src="{{ acc.avatar or 'https://res.cloudinary.com/dkzzyue98/image/upload/v1765023207/avatar_ipfsn6.jpg' }}" alt="{{ acc.full_name }}" class="rounded-circle border" style="width:42px;height:42px;object-fit:cover;">
+                                    <div>
+                                        <div class="fw-semibold text-dark">{{ acc.full_name }}</div>
+                                        <small class="text-muted">ID #{{ acc.id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ acc.email }}</td>
+                            <td>
+                                {% if acc.role.value == 'ADMIN' %}
+                                    <span class="badge bg-danger-subtle text-danger px-2 py-2">Admin</span>
+                                {% elif acc.role.value == 'ORGANIZER' %}
+                                    <span class="badge bg-primary-subtle text-primary px-2 py-2">Nhà tổ chức</span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success px-2 py-2">Khách hàng</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if acc.active %}
+                                    <span class="badge bg-success-subtle text-success px-2 py-2">Hoạt động</span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning px-2 py-2">Khóa</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <form method="post" action="{{ url_for('admin_toggle_account_status', user_id=acc.id) }}" onsubmit="return confirm('Bạn chắc chắn muốn đổi trạng thái tài khoản này?');">
+                                    <button type="submit" class="btn btn-sm {% if acc.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                                        {% if acc.active %}
+                                            <i class="fa-solid fa-lock"></i>
+                                        {% else %}
+                                            <i class="fa-solid fa-unlock"></i>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">Không có tài khoản nào phù hợp.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

@@ -87,6 +87,135 @@ def is_unique_email(email):
     return True, None
 
 
+def get_all_users(keyword=None, role=None, status=None):
+    query = User.query
+
+    if keyword:
+        keyword = keyword.strip()
+        if keyword:
+            query = query.filter(
+                User.full_name.ilike(f"%{keyword}%") |
+                User.email.ilike(f"%{keyword}%")
+            )
+
+    if role:
+        try:
+            query = query.filter(User.role == Role[role.upper()])
+        except KeyError:
+            pass
+
+    if status == "active":
+        query = query.filter(User.active.is_(True))
+    elif status == "inactive":
+        query = query.filter(User.active.is_(False))
+
+    return query.order_by(User.id.desc()).all()
+
+
+def create_account(full_name, email, password, role_name="CUSTOMER", status="active", avatar=None):
+    name = (full_name or "").strip()
+    email = (email or "").strip()
+    if not name:
+        raise ValueError("Tên người dùng không được để trống")
+    if not email:
+        raise ValueError("Email không được để trống")
+
+    if get_user_by_email(email):
+        raise ValueError("Email đã tồn tại")
+
+    valid, err_msg = is_valid_password(password)
+    if not valid:
+        raise ValueError(err_msg)
+
+    role = Role.CUSTOMER
+    if role_name:
+        try:
+            role = Role[role_name.upper()]
+        except KeyError:
+            role = Role.CUSTOMER
+
+    user = User(
+        full_name=name,
+        email=email,
+        password=hashlib.md5(password.encode("utf-8")).hexdigest(),
+        role=role,
+        active=(status == "active"),
+    )
+    if avatar:
+        user.avatar = avatar
+
+    if role == Role.CUSTOMER and not user.customer_profile:
+        user.customer_profile = CustomerProfile()
+
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+def update_account(user_id, full_name=None, email=None, role_name=None, status=None, password=None):
+    user = get_user_by_id(user_id)
+    if not user:
+        raise ValueError("Tài khoản không tồn tại")
+
+    if full_name is not None:
+        full_name = (full_name or "").strip()
+        if not full_name:
+            raise ValueError("Tên người dùng không được để trống")
+        user.full_name = full_name
+
+    if email is not None:
+        email = (email or "").strip()
+        if not email:
+            raise ValueError("Email không được để trống")
+        existing = get_user_by_email(email)
+        if existing and existing.id != user.id:
+            raise ValueError("Email đã tồn tại")
+        user.email = email
+
+    if role_name is not None:
+        try:
+            user.role = Role[role_name.upper()]
+        except KeyError:
+            user.role = Role.CUSTOMER
+
+    if status is not None:
+        user.active = (status == "active")
+
+    if password:
+        valid, err_msg = is_valid_password(password)
+        if not valid:
+            raise ValueError(err_msg)
+        user.password = hashlib.md5(password.encode("utf-8")).hexdigest()
+
+    if user.role == Role.CUSTOMER and not user.customer_profile:
+        user.customer_profile = CustomerProfile()
+
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+def toggle_user_status(user_id):
+    user = get_user_by_id(user_id)
+    if not user:
+        raise ValueError("Tài khoản không tồn tại")
+
+    user.active = not user.active
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+def delete_account(user_id):
+    user = get_user_by_id(user_id)
+    if not user:
+        raise ValueError("Tài khoản không tồn tại")
+
+    db.session.delete(user)
+    db.session.commit()
+    return True
+
+
 def add_user(name, email, password, avatar=None, role_name="CUSTOMER", gender_name=None, preferred_event_type_id=None, active=True):
     valid, err_msg = is_valid_password(password)
     if not valid:
@@ -497,8 +626,6 @@ def delete_event(event_id):
     except Exception:
         db.session.rollback()
         return False, "Không thể xóa"
-
-# hàm ẩn sự kiện
 
 
 def toggle_event_active(event_id):

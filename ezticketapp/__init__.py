@@ -19,6 +19,11 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["PAGE_SIZE"] = 6
 db = SQLAlchemy(app=app)
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, "firebase", "serviceAccountKey.json")
+FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH") or DEFAULT_FIREBASE_CREDENTIALS_PATH
+FIREBASE_DATABASE_URL = os.getenv("FIREBASE_DATABASE_URL")
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -62,7 +67,8 @@ app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
 mail = Mail(app)
 
 
-cred = credentials.Certificate(os.getenv("FIREBASE_CREDENTIALS_PATH"))
-firebase_admin.initialize_app(cred, {
-    'databaseURL': os.getenv("FIREBASE_DATABASE_URL")
-})
+if os.path.exists(FIREBASE_CREDENTIALS_PATH):
+    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': FIREBASE_DATABASE_URL
+    })
