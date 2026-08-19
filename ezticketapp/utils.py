@@ -249,3 +249,14 @@ def handle_event_report_admin(event, description=None):
     if description:
         message += f" Lý do: {description}"
     send_inapp_notification(admin_ids, title, message)
+
+
+def handle_event_report_organizer(event, description=None):
+    if not event or not getattr(event, 'organizer_id', None):
+        return
+    title = f"Sự kiện bị báo cáo: {event.name}"
+    message = f"Sự kiện '{event.name}' của bạn vừa nhận được 1 báo cáo mới."
+    if description:
+        message += f" Lý do: {description}"
+    send_inapp_notification([event.organizer_id], title, message)
+

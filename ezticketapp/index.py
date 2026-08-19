@@ -1162,6 +1162,7 @@ def register_payment_routes(app):
         event = dao.get_event_by_id(event_id)
         if event:
             utils.handle_event_report_admin(event, description)
+            utils.handle_event_report_organizer(event, description)
 
         flash('Gửi báo cáo thành công!', 'success')
         return redirect(url_for('event_detail', event_id=event_id))
