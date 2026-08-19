@@ -80,11 +80,13 @@ Quản lý sự kiện
             <td>
                 {% set r_count = report_counts.get(e.id, 0) if report_counts is defined else 0 %}
                 {% if r_count > 0 %}
-                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#reportsModal-{{ e.id }}">
+                <a href="{{ url_for('event.event_detail', event_id=e.id) }}#reports-section" class="btn btn-outline-danger btn-sm rounded-pill fw-bold" title="Xem danh sách báo cáo">
                     <i class="fa-solid fa-flag me-1"></i> {{ r_count }} báo cáo
-                </button>
+                </a>
                 {% else %}
-                <span class="badge bg-light text-muted border">0 báo cáo</span>
+                <a href="{{ url_for('event.event_detail', event_id=e.id) }}#reports-section" class="btn btn-light btn-sm rounded-pill text-muted border" title="Xem danh sách báo cáo">
+                    <i class="fa-regular fa-flag me-1"></i> 0 báo cáo
+                </a>
                 {% endif %}
             </td>
             <td>

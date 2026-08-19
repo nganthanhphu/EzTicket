@@ -28,6 +28,7 @@
             </span>
 
             {% if current_user.is_authenticated %}
+            {% include "notification_bell.html" %}
             <div class="d-flex align-items-center gap-2">
                 <a href="{{ url_for('profile') }}" class="avatar-link">
                     <img src="{{ current_user.avatar }}" alt="{{ current_user.full_name }}"
@@ -67,6 +68,7 @@
 
     </div>
 
+    {% include "notification_script.html" %}
     {% block tail %}{% endblock %}
 </body>
 

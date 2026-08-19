@@ -147,9 +147,34 @@ Chi tiết sự kiện
     </div>
 </div>
 
-<div class="card shadow border-danger mb-4">
+<style>
+    #reports-section:target {
+        animation: highlightReportsCard 2.5s ease-in-out;
+        scroll-margin-top: 20px;
+    }
+
+    @keyframes highlightReportsCard {
+        0% {
+            box-shadow: 0 0 20px rgba(220, 53, 69, 0.8) !important;
+            transform: scale(1.01);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(220, 53, 69, 0.8) !important;
+            transform: scale(1.01);
+        }
+
+        100% {
+            box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+            transform: scale(1);
+        }
+    }
+</style>
+
+<div class="card shadow border-danger mb-4" id="reports-section">
     <div class="card-header bg-danger text-white fw-bold">
-        <i class="fa-solid fa-flag me-1"></i> Danh sách báo cáo sự kiện ({{ reports|length if reports else 0 }} lượt báo cáo)
+        <i class="fa-solid fa-flag me-1"></i> Danh sách báo cáo sự kiện ({{ reports|length if reports else 0 }} lượt báo
+        cáo)
     </div>
     <div class="card-body">
         {% if reports %}
@@ -169,10 +194,12 @@ Chi tiết sự kiện
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             {% if r.reporter and r.reporter.avatar %}
-                            <img src="{{ r.reporter.avatar }}" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+                            <img src="{{ r.reporter.avatar }}" class="rounded-circle" width="36" height="36"
+                                style="object-fit: cover;">
                             {% endif %}
                             <div>
-                                <strong class="d-block text-dark">{{ r.reporter.full_name if r.reporter else 'N/A' }}</strong>
+                                <strong class="d-block text-dark">{{ r.reporter.full_name if r.reporter else 'N/A'
+                                    }}</strong>
                                 <small class="text-muted">{{ r.reporter.email if r.reporter else '' }}</small>
                             </div>
                         </div>
