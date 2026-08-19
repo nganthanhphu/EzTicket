@@ -1,0 +1,72 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Thêm tài khoản{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">{% if mode == 'create' %}Thêm tài khoản{% else %}Chỉnh sửa tài khoản{% endif %}</h2>
+            <p class="text-muted mb-0">Nhập thông tin cơ bản của người dùng để tạo tài khoản mới.</p>
+        </div>
+        <a href="{{ url_for('admin_accounts') }}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form method="post" action="{{ url_for('admin_create_account') }}" enctype="multipart/form-data">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Họ tên</label>
+                        <input type="text" name="full_name" class="form-control" value="{{ account.full_name if account else '' }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="email" class="form-control" value="{{ account.email if account else '' }}" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Vai trò</label>
+                        <select name="role" class="form-select">
+                            <option value="CUSTOMER" {% if account and account.role.value == 'CUSTOMER' %}selected{% endif %}>Khách hàng</option>
+                            <option value="ORGANIZER" {% if account and account.role.value == 'ORGANIZER' %}selected{% endif %}>Nhà tổ chức</option>
+                            <option value="ADMIN" {% if account and account.role.value == 'ADMIN' %}selected{% endif %}>Admin</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Trạng thái</label>
+                        <select name="status" class="form-select">
+                            <option value="active" {% if account and account.active %}selected{% endif %}>Hoạt động</option>
+                            <option value="inactive" {% if account and not account.active %}selected{% endif %}>Khóa</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Mật khẩu</label>
+                        <input type="password" name="password" class="form-control" {% if not account %}required{% endif %}>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Ảnh đại diện</label>
+                        <input type="file" name="avatar" class="form-control" accept="image/*">
+                        <small class="text-muted">Không bắt buộc. Nếu để trống, hệ thống sẽ dùng ảnh mặc định.</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{{ url_for('admin_accounts') }}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-xmark me-2"></i>Hủy
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>Lưu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

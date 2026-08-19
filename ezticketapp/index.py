@@ -111,6 +111,99 @@ def register_auth_route(app):
 
         return render_template("admin/login.html")
 
+    @app.route("/admin/accounts", methods=["GET"])
+    @login_required
+    @role_required("ADMIN")
+    def admin_accounts():
+        keyword = (request.args.get("keyword") or "").strip()
+        role = (request.args.get("role") or "").strip()
+        status = (request.args.get("status") or "").strip()
+        accounts = dao.get_all_users(keyword=keyword, role=role, status=status)
+        total_accounts = len(accounts)
+        total_active = sum(1 for acc in accounts if acc.active)
+        total_inactive = sum(1 for acc in accounts if not acc.active)
+        total_customer = sum(1 for acc in accounts if acc.role == Role.CUSTOMER)
+        total_organizer = sum(1 for acc in accounts if acc.role == Role.ORGANIZER)
+        total_admin = sum(1 for acc in accounts if acc.role == Role.ADMIN)
+
+        return render_template(
+            "admin/accounts.html",
+            accounts=accounts,
+            keyword=keyword,
+            selected_role=role,
+            selected_status=status,
+            total_accounts=total_accounts,
+            total_active=total_active,
+            total_inactive=total_inactive,
+            total_customer=total_customer,
+            total_organizer=total_organizer,
+            total_admin=total_admin,
+        )
+
+    @app.route("/admin/accounts/create", methods=["GET", "POST"])
+    @login_required
+    @role_required("ADMIN")
+    def admin_create_account():
+        if request.method == "GET":
+            return render_template("admin/account_form.html", mode="create", account=None)
+
+        full_name = (request.form.get("full_name") or "").strip()
+        email = (request.form.get("email") or "").strip()
+        role_name = (request.form.get("role") or "CUSTOMER").strip()
+        status = (request.form.get("status") or "active").strip()
+        password = (request.form.get("password") or "").strip()
+
+        if not full_name or not email or not password:
+            flash("Vui lòng nhập đầy đủ tên, email và mật khẩu.")
+            return render_template("admin/account_form.html", mode="create", account=None)
+
+        avatar_url = None
+        avatar_file = request.files.get("avatar")
+        if avatar_file and avatar_file.filename:
+            try:
+                result = upload(avatar_file)
+                avatar_url = result.get("secure_url") or result.get("url")
+            except Exception as exc:
+                print(exc)
+                flash("Tải ảnh đại diện không thành công, tài khoản vẫn được tạo với ảnh mặc định.")
+
+        try:
+            dao.create_account(
+                full_name=full_name,
+                email=email,
+                password=password,
+                role_name=role_name,
+                status=status,
+                avatar=avatar_url,
+            )
+            flash("Đã tạo tài khoản thành công.")
+            return redirect(url_for("admin_accounts"))
+        except ValueError as exc:
+            flash(str(exc))
+            return render_template("admin/account_form.html", mode="create", account=None)
+
+    @app.route("/admin/accounts/manage", methods=["POST"])
+    @login_required
+    @role_required("ADMIN")
+    def admin_manage_account():
+        return admin_create_account()
+
+    @app.route("/admin/accounts/<int:user_id>/toggle-status", methods=["POST"])
+    @login_required
+    @role_required("ADMIN")
+    def admin_toggle_account_status(user_id):
+        if current_user.id == user_id:
+            flash("Bạn không thể thay đổi trạng thái tài khoản đang đăng nhập.")
+            return redirect(url_for("admin_accounts"))
+
+        try:
+            dao.toggle_user_status(user_id)
+            flash("Đã cập nhật trạng thái tài khoản.")
+        except ValueError as exc:
+            flash(str(exc))
+        return redirect(url_for("admin_accounts"))
+
+
     @app.route("/register", methods=["GET"])
     @anonymous_required
     def register():
@@ -1148,6 +1241,7 @@ def register_payment_routes(app):
                     print(e)
                     db.session.rollback()
         return '', 204
+
 
 
 if __name__ == "__main__":
