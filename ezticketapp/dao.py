@@ -929,6 +929,3 @@ def get_all_reports_grouped_by_event():
 def get_all_admin_ids():
     admins = User.query.filter_by(role=Role.ADMIN).all()
     return [admin.id for admin in admins]
-
-def get_id_origaztion(user_id):
-    return Event.query.filter_by(organizer_id=user_id).all()
