@@ -924,3 +924,9 @@ def get_all_reports_grouped_by_event():
             grouped[r.event_id] = []
         grouped[r.event_id].append(r)
     return grouped
+
+# danh sách ID của admin 
+def get_all_admin_ids():
+    admins = User.query.filter_by(role=Role.ADMIN).all()
+    return [admin.id for admin in admins]
+
