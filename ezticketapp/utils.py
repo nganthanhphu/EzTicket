@@ -237,3 +237,26 @@ def handle_event_info_change_notification(event):
     user_ids = [user.id for user in users]
     send_inapp_notification(user_ids, "Thông báo thay đổi thông tin sự kiện",
                             f"Thông tin sự kiện {event.name} bạn đã mua vé đã được thay đổi. Vui lòng kiểm tra lại thông tin sự kiện.")
+
+
+def handle_event_report_admin(event, description=None):
+    from ezticketapp import dao
+    admin_ids = dao.get_all_admin_ids()
+    if not admin_ids:
+        return
+    title = f"Sự kiện bị báo cáo: {event.name}"
+    message = f"Sự kiện '{event.name}' vừa nhận được 1 báo cáo mới."
+    if description:
+        message += f" Lý do: {description}"
+    send_inapp_notification(admin_ids, title, message)
+
+
+def handle_event_report_organizer(event, description=None):
+    if not event or not getattr(event, 'organizer_id', None):
+        return
+    title = f"Sự kiện bị báo cáo: {event.name}"
+    message = f"Sự kiện '{event.name}' của bạn vừa nhận được 1 báo cáo mới."
+    if description:
+        message += f" Lý do: {description}"
+    send_inapp_notification([event.organizer_id], title, message)
+

@@ -6,7 +6,7 @@ from flask_login import current_user
 from sqlalchemy import case, func, extract
 
 from ezticketapp import db
-from .models import Order, Order, OrderItem, OrderStatus, PaymentMethod, User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender, Voucher
+from .models import Order, Order, OrderItem, OrderStatus, PaymentMethod, User, CustomerProfile, Event, EventType, TicketType, EventTicket, Role, Gender, Voucher,EventReport
 from .utils import is_valid_password
 
 
@@ -1002,3 +1002,57 @@ def get_paid_user_by_event(event_id):
         .distinct()
         .all()
     )
+
+
+def add_report_event(event_id, user_id, report_name=None, report_content=None, description=None):
+    if not user_id:
+        raise ValueError("User must be logged in to report an event.")
+        
+    if not description:
+        if report_name and report_content:
+            description = f"{report_name}: {report_content}"
+        elif report_content:
+            description = report_content
+        elif report_name:
+            description = report_name
+        else:
+            description = "Báo cáo sự kiện"
+
+    report = EventReport(
+        event_id=event_id,
+        reporter_id=user_id,
+        description=description,
+        date=datetime.now()
+    )
+    try:
+        db.session.add(report)
+        db.session.commit()
+        return report
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+#dành cho admin xem báo sự kiện
+def get_event_reports(event_id):
+    return EventReport.query.filter_by(event_id=event_id).order_by(EventReport.date.desc()).all()
+
+
+def get_event_reports_stats():
+    results = db.session.query(EventReport.event_id, func.count(EventReport.id))\
+        .group_by(EventReport.event_id).all()
+    return {event_id: count for event_id, count in results}
+
+
+def get_all_reports_grouped_by_event():
+    reports = EventReport.query.order_by(EventReport.date.desc()).all()
+    grouped = {}
+    for r in reports:
+        if r.event_id not in grouped:
+            grouped[r.event_id] = []
+        grouped[r.event_id].append(r)
+    return grouped
+
+# danh sách ID của admin 
+def get_all_admin_ids():
+    admins = User.query.filter_by(role=Role.ADMIN).all()
+    return [admin.id for admin in admins]

@@ -50,6 +50,9 @@ Quản lý sự kiện
                 Trạng thái
             </th>
             <th>
+                Lượt báo cáo
+            </th>
+            <th>
             </th>
         </tr>
     </thead>
@@ -72,6 +75,18 @@ Quản lý sự kiện
                 <span class="badge bg-success">Hiển thị</span>
                 {% else %}
                 <span class="badge bg-secondary">Đã ẩn</span>
+                {% endif %}
+            </td>
+            <td>
+                {% set r_count = report_counts.get(e.id, 0) if report_counts is defined else 0 %}
+                {% if r_count > 0 %}
+                <a href="{{ url_for('event.event_detail', event_id=e.id) }}#reports-section" class="btn btn-outline-danger btn-sm rounded-pill fw-bold" title="Xem danh sách báo cáo">
+                    <i class="fa-solid fa-flag me-1"></i> {{ r_count }} báo cáo
+                </a>
+                {% else %}
+                <a href="{{ url_for('event.event_detail', event_id=e.id) }}#reports-section" class="btn btn-light btn-sm rounded-pill text-muted border" title="Xem danh sách báo cáo">
+                    <i class="fa-regular fa-flag me-1"></i> 0 báo cáo
+                </a>
                 {% endif %}
             </td>
             <td>
@@ -100,13 +115,75 @@ Quản lý sự kiện
         {% endfor %}
         {% else %}
         <tr>
-            <td colspan="5" class="text-center py-4 text-muted">
+            <td colspan="6" class="text-center py-4 text-muted">
                 Không tìm thấy sự kiện nào.
             </td>
         </tr>
         {% endif %}
     </tbody>
 </table>
+
+<!-- Modals Danh sách Báo cáo theo từng sự kiện -->
+{% if event_list %}
+{% for e in event_list %}
+  {% set ev_reports = reports_grouped.get(e.id, []) if reports_grouped is defined else [] %}
+  {% if ev_reports %}
+  <div class="modal fade" id="reportsModal-{{ e.id }}" tabindex="-1" aria-labelledby="reportsModalLabel-{{ e.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content shadow-lg border-0 rounded-3">
+              <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title fw-bold" id="reportsModalLabel-{{ e.id }}">
+                      <i class="fa-solid fa-flag me-2"></i> Danh sách báo cáo - {{ e.name }}
+                  </h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body p-4">
+                  <div class="table-responsive">
+                      <table class="table table-hover align-middle">
+                          <thead class="table-light">
+                              <tr>
+                                  <th>#</th>
+                                  <th>Người báo cáo</th>
+                                  <th>Mô tả / Lý do</th>
+                                  <th>Thời gian</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              {% for r in ev_reports %}
+                              <tr>
+                                  <td>{{ loop.index }}</td>
+                                  <td>
+                                      <div class="d-flex align-items-center gap-2">
+                                          {% if r.reporter and r.reporter.avatar %}
+                                          <img src="{{ r.reporter.avatar }}" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+                                          {% endif %}
+                                          <div>
+                                              <strong class="d-block text-dark">{{ r.reporter.full_name if r.reporter else 'N/A' }}</strong>
+                                              <small class="text-muted">{{ r.reporter.email if r.reporter else '' }}</small>
+                                          </div>
+                                      </div>
+                                  </td>
+                                  <td>
+                                      <span class="text-break">{{ r.description }}</span>
+                                  </td>
+                                  <td>
+                                      <small class="text-muted">{{ r.date.strftime("%d/%m/%Y %H:%M") if r.date else '' }}</small>
+                                  </td>
+                              </tr>
+                              {% endfor %}
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
+              <div class="modal-footer bg-light border-0">
+                  <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+              </div>
+          </div>
+      </div>
+  </div>
+  {% endif %}
+{% endfor %}
+{% endif %}
 
 <!-- Pagination -->
 {% if total_pages is defined and total_pages > 1 %}

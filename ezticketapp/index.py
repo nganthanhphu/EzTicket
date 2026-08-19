@@ -1242,6 +1242,29 @@ def register_payment_routes(app):
                     db.session.rollback()
         return '', 204
 
+    @app.route('/events/<int:event_id>/report', methods=['POST'])
+    @login_required
+    def report_event(event_id):
+        description = request.form.get('description') or request.form.get('report_content') or request.form.get('report_name')
+        
+        dao.add_report_event(
+            event_id=event_id, 
+            user_id=current_user.id, 
+            description=description
+        )
+        event = dao.get_event_by_id(event_id)
+        if event:
+            utils.handle_event_report_admin(event, description)
+            utils.handle_event_report_organizer(event, description)
+
+        flash('Gửi báo cáo thành công!', 'success')
+        return redirect(url_for('event_detail', event_id=event_id))
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -1249,5 +1272,6 @@ if __name__ == "__main__":
     register_auth_route(app)
     register_order_routes(app)
     register_payment_routes(app)
+    app.run(host="0.0.0.0", port=5000, debug=True)
 
-    app.run(debug=True)
+    # app.run(debug=True)
