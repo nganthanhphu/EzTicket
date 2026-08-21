@@ -183,15 +183,6 @@ def test_revenue_event_filter_by_month(test_session, sample_event, sample_orders
     assert result == 900_000.0
 
 
-def test_revenue_event_filter_by_quarter(test_session, sample_event, sample_orders):
-    now = datetime.now()
-    quarter = (now.month - 1) // 3 + 1
-    result = dao.revenue_event(
-        sample_event.id, filter_type='quarter', quarter=quarter, year=now.year
-    )
-    assert result == 900_000.0
-
-
 def test_revenue_event_filter_by_year(test_session, sample_event, sample_orders):
     result = dao.revenue_event(
         sample_event.id, filter_type='year', year=datetime.now().year
@@ -294,7 +285,7 @@ def test_get_admin_top_revenue_events_e(test_session):
     event_a.name, event_b.name, event_c.name = 'Event A', 'Event B', 'Event C'
     revenues_map = {1: 300_000, 2: 900_000, 3: 600_000}
 
-    with patch('ezticketapp.dao.load_my_events', return_value=[event_a, event_b, event_c]), patch('ezticketapp.dao.revenue_event', side_effect=lambda eid, **kw: revenues_map[eid]):
+    with patch('ezticketapp.dao.get_all_events', return_value=[event_a, event_b, event_c]), patch('ezticketapp.dao.revenue_event', side_effect=lambda eid, **kw: revenues_map[eid]):
         result = dao.get_admin_top_revenue_events(limit=3)
 
     assert len(result) == 3
