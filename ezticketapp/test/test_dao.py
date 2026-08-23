@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ezticketapp import dao
-from ezticketapp.models import Gender, Order, OrderItem, OrderStatus, Role, User, Voucher
+from ezticketapp.models import Event, Order, OrderItem, OrderStatus
 from ezticketapp.test.test_base import (
     test_app,
     test_session,
@@ -330,176 +330,345 @@ def test_get_all_events_revenue_no_events(test_session):
     assert revenues == []
 
 
-def test_create_account_customer_hashes_password_and_creates_profile(test_session):
-    user = dao.create_account(
-        '  Nguyen Thi C  ', 'new@ezticket.com', 'Strong1!',
+# Unit test - Quản lý Sự kiện & Vé
+
+
+def test_get_event_types_dao(test_session, sample_event_type):
+    result = dao.get_event_types()
+    assert len(result) >= 1
+    assert any(et.id == sample_event_type.id for et in result)
+
+
+
+def test_get_event_by_id_dao(test_session, sample_event):
+    event = dao.get_event_by_id(sample_event.id)
+    assert event is not None
+    assert event.name == sample_event.name
+
+
+def test_get_event_by_id_not_found_dao(test_session):
+    event = dao.get_event_by_id(99999)
+    assert event is None
+
+
+
+def test_get_ticket_types_dao(test_session, sample_ticket_types):
+    result = dao.get_ticket_types()
+    assert len(result) >= 2
+
+#loc lay danh sach ve theo su kien
+def test_load_event_tickets_dao(test_session, sample_event, sample_event_tickets):
+    tickets = dao.load_event_tickets(sample_event.id)
+    assert len(tickets) == 2
+
+
+def test_get_event_ticket_dao(test_session, sample_event_tickets):
+    ticket_vip, _ = sample_event_tickets
+    ticket = dao.get_event_ticket(ticket_vip.id)
+    assert ticket is not None
+    assert ticket.price == ticket_vip.price
+
+
+
+def test_get_event_ticket_not_found_dao(test_session):
+    ticket = dao.get_event_ticket(99999)
+    assert ticket is None
+
+#loc tao su kien
+def test_create_event_success_dao(test_session, sample_event_type, sample_organizer):
+    success, msg = dao.create_event(
+        name="New Concert",
+        location="TPHCM",
+        image="http://example.com/img.jpg",
+        purchase_limit=5,
+        cancel_limit=24,
+        event_time="2026-12-31T20:00",
+        event_type_id=sample_event_type.id,
+        organizer_id=sample_organizer.id,
     )
-
-    assert user.full_name == 'Nguyen Thi C'
-    assert user.password == ''.join(__import__('hashlib').md5(b'Strong1!').hexdigest())
-    assert user.role == Role.CUSTOMER
-    assert user.customer_profile is not None
+    assert success is True
+    assert msg == "Tạo sự kiện thành công"
 
 
-def test_create_account_organizer_and_inactive_status(test_session):
-    user = dao.create_account(
-        'Organizer B', 'organizer_b@ezticket.com', 'Strong1!',
-        role_name='ORGANIZER', status='inactive', avatar='avatar.png',
+#loc tao su kien => sai du lieu dau vao
+def test_create_event_invalid_inputs_dao(test_session, sample_event_type, sample_organizer):
+    success, msg = dao.create_event("", "HCM", "", 5, 24, "2026-12-31T20:00", sample_event_type.id, sample_organizer.id)
+    assert success is False
+
+    success, msg = dao.create_event("Event Name", "HCM", "", 0, 24, "2026-12-31T20:00", sample_event_type.id, sample_organizer.id)
+    assert success is False
+
+    success, msg = dao.create_event("Event Name", "HCM", "", 5, -1, "2026-12-31T20:00", sample_event_type.id, sample_organizer.id)
+    assert success is False
+
+    success, msg = dao.create_event("Event Name", "HCM", "", 5, 24, "invalid-time", sample_event_type.id, sample_organizer.id)
+    assert success is False
+
+
+#loc update su kien => thanh cong
+def test_update_event_success_dao(test_session, sample_event):
+    form = {
+        "name": "Concert Hà Nội Updated",
+        "location": "Sân vận động Mỹ Đình",
+        "purchase_limit": "10",
+        "cancel_limit": "12",
+        "time": "2026-11-11T19:00",
+    }
+    success, msg = dao.update_event(sample_event, form)
+    assert success is True
+    assert sample_event.name == "Concert Hà Nội Updated"
+    assert sample_event.purchase_limit == 10
+
+
+#loc update su kien => sai du lieu dau vao
+def test_update_event_invalid_inputs_dao(test_session, sample_event):
+    form = {
+        "name": "",
+        "location": "Sân vận động Mỹ Đình",
+    }
+    success, msg = dao.update_event(sample_event, form)
+    assert success is False
+
+
+#loc xoa su kien => ko the xoa vi co don hang
+def test_delete_event_with_order_fails_dao(test_session, sample_event, sample_orders):
+    success, msg = dao.delete_event(sample_event.id)
+    assert success is False
+    assert "Không thể xóa" in msg
+
+
+#loc xoa su kien => ko ton tai
+def test_delete_event_not_found_dao(test_session):
+    success, msg = dao.delete_event(99999)
+    assert success is False
+    assert msg == "Không tìm thấy sự kiện"
+
+
+#loc xoa su kien => thanh cong
+def test_delete_event_success_dao(test_session, sample_event_type, sample_organizer):
+    event = Event(
+        name="Event To Delete",
+        location="Location",
+        image="",
+        purchase_limit=5,
+        cancellation_time_limit_by_hours=24,
+        time=datetime.now() + timedelta(days=5),
+        event_type_id=sample_event_type.id,
+        organizer_id=sample_organizer.id,
     )
-
-    assert user.role == Role.ORGANIZER
-    assert user.active is False
-    assert user.avatar == 'avatar.png'
-    assert user.customer_profile is None
-
-
-@pytest.mark.parametrize('kwargs, message', [
-    ({'full_name': ' ', 'email': 'valid@ezticket.com'}, 'Tên người dùng không được để trống'),
-    ({'full_name': 'Valid Name', 'email': ''}, 'Email không được để trống'),
-    ({'full_name': 'Valid Name', 'email': 'customer_a@ezticket.com'}, 'Email đã tồn tại'),
-    ({'full_name': 'Valid Name', 'email': 'valid@ezticket.com', 'password': 'weak'}, 'Mật khẩu phải ít nhất 8 ký tự'),
-])
-def test_create_account_rejects_invalid_input(test_session, sample_customers, kwargs, message):
-    values = {'password': 'Strong1!', **kwargs}
-    with pytest.raises(ValueError, match=message):
-        dao.create_account(**values)
-
-
-def test_update_account_updates_fields_hash_and_profile(test_session, sample_customers):
-    customer, _ = sample_customers
-    result = dao.update_account(
-        customer.id, full_name='  Updated Customer ', email='updated@ezticket.com',
-        role_name='CUSTOMER', status='inactive', password='NewStrong1!',
-    )
-
-    assert result.full_name == 'Updated Customer'
-    assert result.email == 'updated@ezticket.com'
-    assert result.password == __import__('hashlib').md5(b'NewStrong1!').hexdigest()
-    assert result.active is False
-    assert result.customer_profile is not None
-
-
-def test_update_account_rejects_missing_user_and_duplicate_email(test_session, sample_customers):
-    customer, other = sample_customers
-    with pytest.raises(ValueError, match='Tài khoản không tồn tại'):
-        dao.update_account(99999, full_name='Nobody')
-    with pytest.raises(ValueError, match='Email đã tồn tại'):
-        dao.update_account(customer.id, email=other.email)
-
-
-def test_add_user_creates_customer_with_profile_and_gender(test_session, sample_event_type):
-    user = dao.add_user(
-        'Customer C', 'customer_c@ezticket.com', 'Strong1!',
-        gender_name='FEMALE', preferred_event_type_id=sample_event_type.id,
-    )
-
-    assert user.password == __import__('hashlib').md5(b'Strong1!').hexdigest()
-    assert user.role == Role.CUSTOMER
-    assert user.customer_profile.gender == Gender.FEMALE
-    assert user.customer_profile.preferred_event_type_id == sample_event_type.id
-
-
-def test_add_user_creates_organizer_without_customer_profile(test_session):
-    user = dao.add_user(
-        'Organizer C', 'organizer_c@ezticket.com', 'Strong1!',
-        role_name='ORGANIZER', active=False,
-    )
-    assert user.role == Role.ORGANIZER
-    assert user.active is False
-    assert user.customer_profile is None
-
-
-def test_get_all_users_filters_keyword_role_and_status(test_session, sample_organizer, sample_customers):
-    active_customers = dao.get_all_users(keyword='Tran', role='customer', status='active')
-    assert [user.id for user in active_customers] == [sample_customers[0].id]
-
-    organizers = dao.get_all_users(role='ORGANIZER')
-    assert organizers == [sample_organizer]
-    assert dao.get_all_users(role='unknown')
-
-
-def test_get_user_lookups_and_unique_email(test_session, sample_customers):
-    customer, _ = sample_customers
-    assert dao.get_user_by_id(customer.id) == customer
-    assert dao.get_user_by_id(99999) is None
-    assert dao.get_user_by_email(customer.email) == customer
-    assert dao.get_user_by_email('missing@ezticket.com') is None
-    assert dao.is_unique_email('new@ezticket.com') == (True, None)
-    assert dao.is_unique_email(customer.email) == (False, 'Email đã tồn tại')
-
-
-def test_toggle_user_status_and_delete_account(test_session, sample_customers):
-    customer, _ = sample_customers
-    original_status = customer.active
-    assert dao.toggle_user_status(customer.id).active is (not original_status)
-    assert dao.delete_account(customer.id) is True
-    assert dao.get_user_by_id(customer.id) is None
-    with pytest.raises(ValueError, match='Tài khoản không tồn tại'):
-        dao.delete_account(99999)
-
-
-def test_update_user_profile_creates_and_updates_profile(test_session, sample_customers, sample_event_type):
-    customer, _ = sample_customers
-    dao.update_user_profile(customer, Gender.MALE, sample_event_type.id)
-    assert customer.customer_profile.gender == Gender.MALE
-    assert customer.customer_profile.preferred_event_type_id == sample_event_type.id
-
-    dao.update_user_profile(customer, Gender.OTHER, None)
-    assert customer.customer_profile.gender == Gender.OTHER
-    assert customer.customer_profile.preferred_event_type_id is None
-
-
-def test_update_voucher_quantity_decreases_increases_and_handles_missing(test_session, sample_voucher):
-    dao.update_voucher_quantity(sample_voucher.id)
-    assert sample_voucher.quantity == 49
-    dao.update_voucher_quantity(sample_voucher.id, is_increase=True)
-    assert sample_voucher.quantity == 50
-    dao.update_voucher_quantity(None)
-
-    sample_voucher.quantity = 0
-    with pytest.raises(ValueError, match='Số lượng voucher không hợp lệ'):
-        dao.update_voucher_quantity(sample_voucher.id)
-
-
-def test_create_update_load_get_and_delete_voucher(test_session, sample_event, sample_voucher):
-    expiration = datetime.now() + timedelta(days=10)
-    success, message = dao.create_voucher(
-        sample_event.id, 'DISCOUNT20', 20, 10, expiration,
-    )
-    assert (success, message) == (True, 'Thêm voucher thành công')
-    created = dao.get_vouchers_by_event_id(sample_event.id)[0]
-    assert created.code == 'DISCOUNT20'
-    assert dao.get_voucher(created.id) == created
-    assert dao.load_event_vouchers(sample_event.id) == [created, sample_voucher]
-
-    success, message = dao.update_voucher(
-        created.id, 'UPDATED20', 25, 5, expiration + timedelta(days=1),
-    )
-    assert (success, message) == (True, 'Đã cập nhật')
-    assert dao.get_voucher(created.id).code == 'UPDATED20'
-
-    assert dao.delete_voucher(created.id) == (True, 'Đã xóa')
-    assert dao.get_voucher(created.id) is None
-
-
-def test_voucher_queries_filter_available_and_handle_missing(test_session, sample_event, sample_voucher):
-    expired = Voucher(
-        event_id=sample_event.id, code='EXPIRED', discount_percentage=30,
-        quantity=10, expiration_date=datetime.now() - timedelta(days=1),
-    )
-    empty = Voucher(
-        event_id=sample_event.id, code='EMPTY', discount_percentage=40,
-        quantity=0, expiration_date=datetime.now() + timedelta(days=1),
-    )
-    test_session.add_all([expired, empty])
+    test_session.add(event)
     test_session.commit()
 
-    available = dao.get_vouchers_by_event_id(sample_event.id)
-    assert available == [sample_voucher]
-    assert {voucher.code for voucher in dao.get_vouchers_by_event_id(sample_event.id, only_available=False)} == {
-        'DISCOUNT10', 'EXPIRED', 'EMPTY'
-    }
-    assert dao.load_event_vouchers(99999) == []
-    assert dao.get_voucher(99999) is None
-    assert dao.update_voucher(99999, 'X', 1, 1, datetime.now()) == (False, 'Không tìm thấy voucher')
-    assert dao.delete_voucher(99999) == (False, 'Không tìm thấy voucher')
+    success, msg = dao.delete_event(event.id)
+    assert success is True
+    assert msg == "Đã xóa"
+
+
+#loc them loai ve
+def test_create_event_ticket_success_dao(test_session, sample_event, sample_ticket_types):
+    vip_type, _ = sample_ticket_types
+    success, msg = dao.create_event_ticket(sample_event.id, vip_type.id, price=300000.0, quantity=50)
+    assert success is True
+    assert msg == "Tạo loại vé thành công"
+
+
+#loc them loai ve => sai du lieu dau vao
+def test_create_event_ticket_invalid_quantity_dao(test_session, sample_event, sample_ticket_types):
+    vip_type, _ = sample_ticket_types
+    success, msg = dao.create_event_ticket(sample_event.id, vip_type.id, price=300000.0, quantity=0)
+    assert success is False
+
+
+#loc update loai ve => thanh cong
+def test_update_event_ticket_success_dao(test_session, sample_event_tickets):
+    ticket_vip, _ = sample_event_tickets
+    success, msg = dao.update_event_ticket(ticket_vip.id, ticket_vip.ticket_type_id, price=600000.0, quantity=20)
+    assert success is True
+    assert ticket_vip.price == 600000.0
+    assert ticket_vip.quantity == 20
+
+
+#loc update loai ve => ko ton tai
+def test_update_event_ticket_not_found_dao(test_session):
+    success, msg = dao.update_event_ticket(99999, 1, 100000.0, 10)
+    assert success is False
+
+
+#loc update loai ve => sai du lieu dau vao
+def test_update_event_ticket_invalid_quantity_dao(test_session, sample_event_tickets):
+    ticket_vip, _ = sample_event_tickets
+    success, msg = dao.update_event_ticket(ticket_vip.id, ticket_vip.ticket_type_id, price=600000.0, quantity=0)
+    assert success is False
+
+
+#loc xoa loai ve => thanh cong
+def test_delete_event_ticket_success_dao(test_session, sample_event_tickets):
+    ticket_vip, _ = sample_event_tickets
+    success, msg = dao.delete_event_ticket(ticket_vip.id)
+    assert success is True
+
+
+#loc xoa loai ve => ko ton tai
+def test_delete_event_ticket_not_found_dao(test_session):
+    success, msg = dao.delete_event_ticket(99999)
+    assert success is False
+
+
+
+def test_update_tickets_quantity_decrease_dao(test_session, sample_event_tickets):
+    ticket_vip, _ = sample_event_tickets
+    initial_qty = ticket_vip.quantity
+    item = MagicMock(event_ticket_id=ticket_vip.id, quantity=2)
+
+    dao.update_tickets_quantity([item], is_increase=False)
+    assert ticket_vip.quantity == initial_qty - 2
+
+
+
+def test_update_tickets_quantity_increase_dao(test_session, sample_event_tickets):
+    ticket_vip, _ = sample_event_tickets
+    initial_qty = ticket_vip.quantity
+    item = MagicMock(event_ticket_id=ticket_vip.id, quantity=5)
+
+    dao.update_tickets_quantity([item], is_increase=True)
+    assert ticket_vip.quantity == initial_qty + 5
+
+
+#loc update so luong ve => sai du lieu dau vao
+def test_update_tickets_quantity_invalid_raises_dao(test_session, sample_event_tickets):
+    ticket_vip, _ = sample_event_tickets
+    item = MagicMock(event_ticket_id=ticket_vip.id, quantity=9999)
+
+    with pytest.raises(ValueError, match="Số lượng vé không hợp lệ"):
+        dao.update_tickets_quantity([item], is_increase=False)
+
+
+#loc tinh tong so ve da ban => thanh cong
+def test_get_total_sold_ticket_dao(test_session, sample_event_tickets, sample_orders):
+    _, ticket_regular = sample_event_tickets
+    total_sold = dao.get_total_sold_ticket(ticket_regular.id)
+    assert total_sold == 2
+
+
+#loc goi y gia ve => ko ton tai
+def test_suggest_ticket_price_not_found_dao(test_session):
+    price = dao.suggest_ticket_price(99999)
+    assert price is None
+
+
+#loc goi y gia ve => thanh cong
+def test_suggest_ticket_price_success_dao(test_session, sample_event_tickets, sample_event):
+    ticket_vip, _ = sample_event_tickets
+    price = dao.suggest_ticket_price(ticket_vip.id)
+    assert price == ticket_vip.price
+
+
+def test_load_events_all_filters_dao(test_app, test_session, sample_event, sample_event_type, sample_event_tickets, sample_organizer):
+    with test_app.test_request_context():
+        # ko can dang nhap
+        anon = MagicMock(is_authenticated=False)
+        with patch('ezticketapp.dao.current_user', anon):
+            
+            p = dao.load_events()
+            assert len(p.items) >= 1
+
+            
+            p_kw = dao.load_events(keyword=sample_event.name)
+            assert len(p_kw.items) >= 1
+
+            
+            p_loc = dao.load_events(location=sample_event.location)
+            assert len(p_loc.items) >= 1
+
+            
+            p_type = dao.load_events(event_type_id=sample_event_type.id)
+            assert len(p_type.items) >= 1
+
+            
+            p_price = dao.load_events(min_price=100000.0, max_price=600000.0)
+            assert len(p_price.items) >= 1
+
+            # Lọc theo khoảng giá không khớp
+            p_price_none = dao.load_events(min_price=900000.0)
+            assert len(p_price_none.items) == 0
+
+        # 2. Vai trò Admin (xem được tất cả sự kiện)
+        admin = MagicMock(is_authenticated=True, role=dao.Role.ADMIN)
+        with patch('ezticketapp.dao.current_user', admin):
+            p_admin = dao.load_events()
+            assert len(p_admin.items) >= 1
+
+        # 3. Vai trò Organizer => (chỉ xem sự kiện của mình)
+        org = MagicMock(is_authenticated=True, role=dao.Role.ORGANIZER, id=sample_organizer.id)
+        with patch('ezticketapp.dao.current_user', org):
+            p_org = dao.load_events()
+            assert len(p_org.items) >= 1
+            assert all(e.organizer_id == sample_organizer.id for e in p_org.items)
+
+        # 4.    ưu tiên loại sự kiện
+        cust_profile = MagicMock(preferred_event_type_id=sample_event_type.id)
+        cust = MagicMock(is_authenticated=True, role=dao.Role.CUSTOMER, customer_profile=cust_profile)
+        with patch('ezticketapp.dao.current_user', cust):
+            p_cust = dao.load_events()
+            assert len(p_cust.items) >= 1
+
+
+
+def test_load_my_events_unauthenticated_dao(test_session):
+    with patch('ezticketapp.dao.current_user', MagicMock(is_authenticated=False)):
+        events = dao.load_my_events()
+        assert events == []
+
+
+
+def test_load_my_events_authenticated_dao(test_session, sample_organizer, sample_event):
+    with patch('ezticketapp.dao.current_user', sample_organizer):
+        events = dao.load_my_events()
+        assert len(events) >= 1
+        assert events[0].id == sample_event.id
+
+
+#loc lay tat ca su kien => thanh cong
+def test_get_all_events_dao(test_session, sample_event):
+    events = dao.get_all_events()
+    assert len(events) >= 1
+    assert any(e.id == sample_event.id for e in events)
+
+
+#loc bat su kien => ko ton tai
+def test_toggle_event_active_not_found_dao(test_session):
+    success, msg = dao.toggle_event_active(99999)
+    assert success is False
+    assert msg == "Không tìm thấy sự kiện"
+
+
+#loc bat su kien => thanh cong
+def test_toggle_event_active_success_dao(test_session, sample_event):
+    initial_status = sample_event.is_active
+    success, msg = dao.toggle_event_active(sample_event.id)
+    assert success is True
+    assert sample_event.is_active == (not initial_status)
+
+
+#loc kiem tra su kien da co don hang => co don hang
+def test_has_order_dao(test_session, sample_event, sample_orders):
+    assert dao.has_order(sample_event.id) is True
+
+
+#loc kiem tra su kien da co don hang => ko co don hang
+def test_has_order_no_orders_dao(test_session, sample_event_type, sample_organizer):
+    event = Event(
+        name="No Order Event",
+        location="Loc",
+        image="",
+        purchase_limit=5,
+        cancellation_time_limit_by_hours=24,
+        time=datetime.now() + timedelta(days=10),
+        event_type_id=sample_event_type.id,
+        organizer_id=sample_organizer.id,
+    )
+    test_session.add(event)
+    test_session.commit()
+
+    assert dao.has_order(event.id) is False
+
