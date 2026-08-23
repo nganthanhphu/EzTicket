@@ -179,3 +179,50 @@ def test_handle_event_info_change_notification_success(test_session, sample_even
     user_ids, title, message = mock_noti.call_args[0]
     assert customer_a.id in user_ids
     assert sample_event.name in message
+
+
+@pytest.mark.parametrize('value, expected', [
+    ('valid@ezticket.com', (True, None)),
+    ('name.surname+tag@domain.co', (True, None)),
+    ('', (False, 'Email không được để trống')),
+    ('invalid-email', (False, 'Email không hợp lệ')),
+])
+def test_is_valid_email(value, expected):
+    assert utils.is_valid_email(value) == expected
+
+
+@pytest.mark.parametrize('value, expected', [
+    ('Nguyen Van A', (True, None)),
+    ('Nguyễn Thị Ánh', (True, None)),
+    ('', (False, 'Tên không được để trống')),
+    ('Name123', (False, 'Tên chỉ được chứa chữ cái và khoảng trắng')),
+    ('A' * 51, (False, 'Tên không được vượt quá 50 ký tự')),
+])
+def test_is_valid_name(value, expected):
+    assert utils.is_valid_name(value) == expected
+
+
+@pytest.mark.parametrize('password, expected', [
+    ('Strong1!', (True, None)),
+    ('', (False, 'Mật khẩu không được để trống')),
+    ('short1!', (False, 'Mật khẩu phải ít nhất 8 ký tự')),
+    ('lowercase1!', (False, 'Mật khẩu phải có chữ hoa')),
+    ('UPPERCASE1!', (False, 'Mật khẩu phải có chữ thường')),
+    ('NoNumber!', (False, 'Mật khẩu phải có số')),
+    ('NoSpecial1', (False, 'Mật khẩu phải có ký tự đặc biệt')),
+])
+def test_is_valid_password(password, expected):
+    assert utils.is_valid_password(password) == expected
+
+
+def test_string_validators_cover_blank_length_and_confirmation():
+    assert utils.is_not_blank('  ', 'Tên') == (False, 'Tên không được để trống')
+    assert utils.is_not_blank('value', 'Tên') == (True, None)
+    assert utils.is_valid_length('ab', min_len=3, field_name='Mã') == (
+        False, 'Mã phải có ít nhất 3 ký tự')
+    assert utils.is_valid_length('abcd', max_len=3, field_name='Mã') == (
+        False, 'Mã không được vượt quá 3 ký tự')
+    assert utils.is_valid_length('abc', min_len=3, max_len=3) == (True, None)
+    assert utils.is_valid_confirm('Strong1!', 'Strong1!') == (True, None)
+    assert utils.is_valid_confirm('Strong1!', 'Different1!') == (
+        False, 'Mật khẩu xác nhận không khớp.')

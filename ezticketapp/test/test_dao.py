@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ezticketapp import dao
-from ezticketapp.models import Order, OrderItem, OrderStatus
+from ezticketapp.models import Gender, Order, OrderItem, OrderStatus, Role, User, Voucher
 from ezticketapp.test.test_base import (
     test_app,
     test_session,
@@ -328,3 +328,178 @@ def test_get_all_events_revenue_no_events(test_session):
         labels, revenues = dao.get_all_events_revenue()
     assert labels == []
     assert revenues == []
+
+
+def test_create_account_customer_hashes_password_and_creates_profile(test_session):
+    user = dao.create_account(
+        '  Nguyen Thi C  ', 'new@ezticket.com', 'Strong1!',
+    )
+
+    assert user.full_name == 'Nguyen Thi C'
+    assert user.password == ''.join(__import__('hashlib').md5(b'Strong1!').hexdigest())
+    assert user.role == Role.CUSTOMER
+    assert user.customer_profile is not None
+
+
+def test_create_account_organizer_and_inactive_status(test_session):
+    user = dao.create_account(
+        'Organizer B', 'organizer_b@ezticket.com', 'Strong1!',
+        role_name='ORGANIZER', status='inactive', avatar='avatar.png',
+    )
+
+    assert user.role == Role.ORGANIZER
+    assert user.active is False
+    assert user.avatar == 'avatar.png'
+    assert user.customer_profile is None
+
+
+@pytest.mark.parametrize('kwargs, message', [
+    ({'full_name': ' ', 'email': 'valid@ezticket.com'}, 'Tên người dùng không được để trống'),
+    ({'full_name': 'Valid Name', 'email': ''}, 'Email không được để trống'),
+    ({'full_name': 'Valid Name', 'email': 'customer_a@ezticket.com'}, 'Email đã tồn tại'),
+    ({'full_name': 'Valid Name', 'email': 'valid@ezticket.com', 'password': 'weak'}, 'Mật khẩu phải ít nhất 8 ký tự'),
+])
+def test_create_account_rejects_invalid_input(test_session, sample_customers, kwargs, message):
+    values = {'password': 'Strong1!', **kwargs}
+    with pytest.raises(ValueError, match=message):
+        dao.create_account(**values)
+
+
+def test_update_account_updates_fields_hash_and_profile(test_session, sample_customers):
+    customer, _ = sample_customers
+    result = dao.update_account(
+        customer.id, full_name='  Updated Customer ', email='updated@ezticket.com',
+        role_name='CUSTOMER', status='inactive', password='NewStrong1!',
+    )
+
+    assert result.full_name == 'Updated Customer'
+    assert result.email == 'updated@ezticket.com'
+    assert result.password == __import__('hashlib').md5(b'NewStrong1!').hexdigest()
+    assert result.active is False
+    assert result.customer_profile is not None
+
+
+def test_update_account_rejects_missing_user_and_duplicate_email(test_session, sample_customers):
+    customer, other = sample_customers
+    with pytest.raises(ValueError, match='Tài khoản không tồn tại'):
+        dao.update_account(99999, full_name='Nobody')
+    with pytest.raises(ValueError, match='Email đã tồn tại'):
+        dao.update_account(customer.id, email=other.email)
+
+
+def test_add_user_creates_customer_with_profile_and_gender(test_session, sample_event_type):
+    user = dao.add_user(
+        'Customer C', 'customer_c@ezticket.com', 'Strong1!',
+        gender_name='FEMALE', preferred_event_type_id=sample_event_type.id,
+    )
+
+    assert user.password == __import__('hashlib').md5(b'Strong1!').hexdigest()
+    assert user.role == Role.CUSTOMER
+    assert user.customer_profile.gender == Gender.FEMALE
+    assert user.customer_profile.preferred_event_type_id == sample_event_type.id
+
+
+def test_add_user_creates_organizer_without_customer_profile(test_session):
+    user = dao.add_user(
+        'Organizer C', 'organizer_c@ezticket.com', 'Strong1!',
+        role_name='ORGANIZER', active=False,
+    )
+    assert user.role == Role.ORGANIZER
+    assert user.active is False
+    assert user.customer_profile is None
+
+
+def test_get_all_users_filters_keyword_role_and_status(test_session, sample_organizer, sample_customers):
+    active_customers = dao.get_all_users(keyword='Tran', role='customer', status='active')
+    assert [user.id for user in active_customers] == [sample_customers[0].id]
+
+    organizers = dao.get_all_users(role='ORGANIZER')
+    assert organizers == [sample_organizer]
+    assert dao.get_all_users(role='unknown')
+
+
+def test_get_user_lookups_and_unique_email(test_session, sample_customers):
+    customer, _ = sample_customers
+    assert dao.get_user_by_id(customer.id) == customer
+    assert dao.get_user_by_id(99999) is None
+    assert dao.get_user_by_email(customer.email) == customer
+    assert dao.get_user_by_email('missing@ezticket.com') is None
+    assert dao.is_unique_email('new@ezticket.com') == (True, None)
+    assert dao.is_unique_email(customer.email) == (False, 'Email đã tồn tại')
+
+
+def test_toggle_user_status_and_delete_account(test_session, sample_customers):
+    customer, _ = sample_customers
+    original_status = customer.active
+    assert dao.toggle_user_status(customer.id).active is (not original_status)
+    assert dao.delete_account(customer.id) is True
+    assert dao.get_user_by_id(customer.id) is None
+    with pytest.raises(ValueError, match='Tài khoản không tồn tại'):
+        dao.delete_account(99999)
+
+
+def test_update_user_profile_creates_and_updates_profile(test_session, sample_customers, sample_event_type):
+    customer, _ = sample_customers
+    dao.update_user_profile(customer, Gender.MALE, sample_event_type.id)
+    assert customer.customer_profile.gender == Gender.MALE
+    assert customer.customer_profile.preferred_event_type_id == sample_event_type.id
+
+    dao.update_user_profile(customer, Gender.OTHER, None)
+    assert customer.customer_profile.gender == Gender.OTHER
+    assert customer.customer_profile.preferred_event_type_id is None
+
+
+def test_update_voucher_quantity_decreases_increases_and_handles_missing(test_session, sample_voucher):
+    dao.update_voucher_quantity(sample_voucher.id)
+    assert sample_voucher.quantity == 49
+    dao.update_voucher_quantity(sample_voucher.id, is_increase=True)
+    assert sample_voucher.quantity == 50
+    dao.update_voucher_quantity(None)
+
+    sample_voucher.quantity = 0
+    with pytest.raises(ValueError, match='Số lượng voucher không hợp lệ'):
+        dao.update_voucher_quantity(sample_voucher.id)
+
+
+def test_create_update_load_get_and_delete_voucher(test_session, sample_event, sample_voucher):
+    expiration = datetime.now() + timedelta(days=10)
+    success, message = dao.create_voucher(
+        sample_event.id, 'DISCOUNT20', 20, 10, expiration,
+    )
+    assert (success, message) == (True, 'Thêm voucher thành công')
+    created = dao.get_vouchers_by_event_id(sample_event.id)[0]
+    assert created.code == 'DISCOUNT20'
+    assert dao.get_voucher(created.id) == created
+    assert dao.load_event_vouchers(sample_event.id) == [created, sample_voucher]
+
+    success, message = dao.update_voucher(
+        created.id, 'UPDATED20', 25, 5, expiration + timedelta(days=1),
+    )
+    assert (success, message) == (True, 'Đã cập nhật')
+    assert dao.get_voucher(created.id).code == 'UPDATED20'
+
+    assert dao.delete_voucher(created.id) == (True, 'Đã xóa')
+    assert dao.get_voucher(created.id) is None
+
+
+def test_voucher_queries_filter_available_and_handle_missing(test_session, sample_event, sample_voucher):
+    expired = Voucher(
+        event_id=sample_event.id, code='EXPIRED', discount_percentage=30,
+        quantity=10, expiration_date=datetime.now() - timedelta(days=1),
+    )
+    empty = Voucher(
+        event_id=sample_event.id, code='EMPTY', discount_percentage=40,
+        quantity=0, expiration_date=datetime.now() + timedelta(days=1),
+    )
+    test_session.add_all([expired, empty])
+    test_session.commit()
+
+    available = dao.get_vouchers_by_event_id(sample_event.id)
+    assert available == [sample_voucher]
+    assert {voucher.code for voucher in dao.get_vouchers_by_event_id(sample_event.id, only_available=False)} == {
+        'DISCOUNT10', 'EXPIRED', 'EMPTY'
+    }
+    assert dao.load_event_vouchers(99999) == []
+    assert dao.get_voucher(99999) is None
+    assert dao.update_voucher(99999, 'X', 1, 1, datetime.now()) == (False, 'Không tìm thấy voucher')
+    assert dao.delete_voucher(99999) == (False, 'Không tìm thấy voucher')
