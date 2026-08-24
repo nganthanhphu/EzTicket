@@ -18,6 +18,8 @@ import base64
 from io import BytesIO
 from ezticketapp.admin import init_admin
 
+app = app
+
 init_admin(app)
 
 
