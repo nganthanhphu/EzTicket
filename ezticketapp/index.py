@@ -122,8 +122,10 @@ def register_auth_route(app):
         total_accounts = len(accounts)
         total_active = sum(1 for acc in accounts if acc.active)
         total_inactive = sum(1 for acc in accounts if not acc.active)
-        total_customer = sum(1 for acc in accounts if acc.role == Role.CUSTOMER)
-        total_organizer = sum(1 for acc in accounts if acc.role == Role.ORGANIZER)
+        total_customer = sum(
+            1 for acc in accounts if acc.role == Role.CUSTOMER)
+        total_organizer = sum(
+            1 for acc in accounts if acc.role == Role.ORGANIZER)
         total_admin = sum(1 for acc in accounts if acc.role == Role.ADMIN)
 
         return render_template(
@@ -165,7 +167,8 @@ def register_auth_route(app):
                 avatar_url = result.get("secure_url") or result.get("url")
             except Exception as exc:
                 print(exc)
-                flash("Tải ảnh đại diện không thành công, tài khoản vẫn được tạo với ảnh mặc định.")
+                flash(
+                    "Tải ảnh đại diện không thành công, tài khoản vẫn được tạo với ảnh mặc định.")
 
         try:
             dao.create_account(
@@ -202,7 +205,6 @@ def register_auth_route(app):
         except ValueError as exc:
             flash(str(exc))
         return redirect(url_for("admin_accounts"))
-
 
     @app.route("/register", methods=["GET"])
     @anonymous_required
@@ -1245,11 +1247,12 @@ def register_payment_routes(app):
     @app.route('/events/<int:event_id>/report', methods=['POST'])
     @login_required
     def report_event(event_id):
-        description = request.form.get('description') or request.form.get('report_content') or request.form.get('report_name')
-        
+        description = request.form.get('description') or request.form.get(
+            'report_content') or request.form.get('report_name')
+
         dao.add_report_event(
-            event_id=event_id, 
-            user_id=current_user.id, 
+            event_id=event_id,
+            user_id=current_user.id,
             description=description
         )
         event = dao.get_event_by_id(event_id)
@@ -1260,18 +1263,11 @@ def register_payment_routes(app):
         flash('Gửi báo cáo thành công!', 'success')
         return redirect(url_for('event_detail', event_id=event_id))
 
-
-
-
-
-
-
-
-if __name__ == "__main__":
     register_routes(app)
     register_auth_route(app)
     register_order_routes(app)
     register_payment_routes(app)
-    app.run(host="0.0.0.0", port=5000, debug=True)
 
-    # app.run(debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
