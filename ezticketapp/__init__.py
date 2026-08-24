@@ -54,8 +54,12 @@ FACE_VERIFICATION_MODELS = [
     "gemini-3.5-flash-lite",
 ]
 
+gemini_client = None
 
-gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if GEMINI_API_KEY and GEMINI_API_KEY != "":
+    gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
