@@ -1,3 +1,4 @@
+import json
 import os
 from dotenv import load_dotenv
 from flask import Flask
@@ -18,9 +19,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 app.config["PAGE_SIZE"] = 6
 db = SQLAlchemy(app=app)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, "firebase", "serviceAccountKey.json")
-FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH") or DEFAULT_FIREBASE_CREDENTIALS_PATH
 FIREBASE_DATABASE_URL = os.getenv("FIREBASE_DATABASE_URL")
 
 
@@ -69,9 +67,9 @@ app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
 
 mail = Mail(app)
 
-
-if os.path.exists(FIREBASE_CREDENTIALS_PATH):
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+FIREBASE_SERVICE_ACCOUNT = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+if FIREBASE_SERVICE_ACCOUNT and FIREBASE_SERVICE_ACCOUNT != "":
+    cred = credentials.Certificate(json.loads(FIREBASE_SERVICE_ACCOUNT))
     firebase_admin.initialize_app(cred, {
         'databaseURL': FIREBASE_DATABASE_URL
     })
