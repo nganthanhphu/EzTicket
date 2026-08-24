@@ -1,0 +1,2 @@
+[tool.vercel]
+entrypoint = "ezticketapp.index:app"
