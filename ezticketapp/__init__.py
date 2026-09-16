@@ -68,8 +68,25 @@ app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
 mail = Mail(app)
 
 FIREBASE_SERVICE_ACCOUNT = os.getenv("FIREBASE_SERVICE_ACCOUNT")
-if FIREBASE_SERVICE_ACCOUNT and FIREBASE_SERVICE_ACCOUNT != "":
-    cred = credentials.Certificate(json.loads(FIREBASE_SERVICE_ACCOUNT))
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': FIREBASE_DATABASE_URL
-    })
+service_account_path = os.path.join(os.path.dirname(__file__), 'firebase', 'serviceAccountKey.json')
+
+if not firebase_admin._apps:
+    cred = None
+    if FIREBASE_SERVICE_ACCOUNT and FIREBASE_SERVICE_ACCOUNT.strip():
+        try:
+            cred = credentials.Certificate(json.loads(FIREBASE_SERVICE_ACCOUNT))
+        except Exception as e:
+            print("Error loading FIREBASE_SERVICE_ACCOUNT env:", e)
+    elif os.path.exists(service_account_path):
+        try:
+            cred = credentials.Certificate(service_account_path)
+        except Exception as e:
+            print("Error loading serviceAccountKey.json:", e)
+
+    if cred:
+        try:
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': FIREBASE_DATABASE_URL or ""
+            })
+        except Exception as e:
+            print("Firebase init error:", e)

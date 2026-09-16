@@ -100,6 +100,7 @@
             {% endif %}
         </div>
 
+        {% if events.pages > 1 %}
         <nav class="pagination-nav" aria-label="Phân trang sự kiện">
             <ul class="pagination-list">
                 {% if events.has_prev %}
@@ -119,5 +120,6 @@
                 {% endif %}
             </ul>
         </nav>
+        {% endif %}
     </div>
     {% endblock %}

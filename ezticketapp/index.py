@@ -1263,10 +1263,10 @@ def register_payment_routes(app):
         flash('Gửi báo cáo thành công!', 'success')
         return redirect(url_for('event_detail', event_id=event_id))
 
-    register_routes(app)
-    register_auth_route(app)
-    register_order_routes(app)
-    register_payment_routes(app)
+register_routes(app)
+register_auth_route(app)
+register_order_routes(app)
+register_payment_routes(app)
 
 
 if __name__ == "__main__":
