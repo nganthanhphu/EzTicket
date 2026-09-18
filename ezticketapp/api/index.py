@@ -1104,6 +1104,11 @@ def register_order_routes(app):
             flash("Bạn không có quyền xem đơn hàng này.")
             return redirect(url_for("home"))
 
+        if order.status == OrderStatus.PENDING and order.date and (datetime.now() - order.date) > timedelta(minutes=5):
+            order.status = OrderStatus.CANCELLED
+            db.session.commit()
+            db.session.refresh(order)
+
         return render_template(
             "payment_result.html",
             order=order

@@ -214,7 +214,7 @@
         {% endif %}
     </div>
 
-    {% elif order.status.name == "CANCELLED" %}
+    {% elif order.status.name == "CANCELLED" or order.status.name == "PENDING" %}
     <div class="mb-4">
         <svg class="icon-svg" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.2 130.2">
             <circle class="path circle" fill="none" stroke="#D06079" stroke-width="6" stroke-miterlimit="10" cx="65.1"
