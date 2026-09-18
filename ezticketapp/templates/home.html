@@ -62,27 +62,31 @@
         <div class="grid-cards">
             {% for event in events.items %}
             <article class="event-card">
-                <div class="event-card-image" style="background-image: url('{{ event.image }}');">
-                </div>
+                <a href="{{ url_for('event_detail', event_id=event.id) }}">
+                    <div class="event-card-image" style="background-image: url('{{ event.image }}');">
+                    </div>
+                </a>
                 <div class="event-card-body">
                     <div>
                         <span class="event-type">{{ event.event_type.name if event.event_type else 'Sự kiện' }}</span>
                         <h3>{{ event.name }}</h3>
                         <div class="event-meta">
-                            <span><i class="fa-solid fa-location-dot"></i> {{ event.location or 'Địa điểm chưa có' }}</span>
-                            <span><i class="fa-solid fa-calendar-days"></i> {{ event.time.strftime('%d/%m/%Y') if event.time else 'Chưa xác định' }}</span>
+                            <span><i class="fa-solid fa-location-dot"></i> {{ event.location or 'Địa điểm chưa có'
+                                }}</span>
+                            <span><i class="fa-solid fa-calendar-days"></i> {{ event.time.strftime('%d/%m/%Y') if
+                                event.time else 'Chưa xác định' }}</span>
                             {% set prices = event.tickets | map(attribute='price') | list %}
-                            <span><i class="fa-solid fa-ticket"></i> 
+                            <span><i class="fa-solid fa-ticket"></i>
                                 {% if prices %}
-                                    {% set min_p = prices | min %}
-                                    {% set max_p = prices | max %}
-                                    {% if min_p == max_p %}
-                                        {{ "{:,.0f}".format(min_p) }} VNĐ
-                                    {% else %}
-                                        {{ "{:,.0f}".format(min_p) }} - {{ "{:,.0f}".format(max_p) }} VNĐ
-                                    {% endif %}
+                                {% set min_p = prices | min %}
+                                {% set max_p = prices | max %}
+                                {% if min_p == max_p %}
+                                {{ "{:,.0f}".format(min_p) }} VNĐ
                                 {% else %}
-                                    Chưa có giá
+                                {{ "{:,.0f}".format(min_p) }} - {{ "{:,.0f}".format(max_p) }} VNĐ
+                                {% endif %}
+                                {% else %}
+                                Chưa có giá
                                 {% endif %}
                             </span>
                         </div>
