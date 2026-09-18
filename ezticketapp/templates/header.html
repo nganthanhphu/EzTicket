@@ -1,5 +1,5 @@
 <header class="header">
-    <a class="logo text-decoration-none " href="{{ url_for('home') }}">
+    <a class="logo text-decoration-none " href="{{ current_user.role.get_homepage() if current_user.is_authenticated else url_for('home') }}">
         <span class="logo-box">Ez</span>Ticket
     </a>
 

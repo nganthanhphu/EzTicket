@@ -10,6 +10,14 @@ class Role(PyEnum):
     ORGANIZER = "ORGANIZER"
     ADMIN = "ADMIN"
 
+    def get_homepage(self):
+        HOME_PAGES = {
+            Role.CUSTOMER: "/",
+            Role.ORGANIZER: "/organizer/dashboard",
+            Role.ADMIN: "/admin"
+        }
+        return HOME_PAGES.get(self, "/")
+
 
 class OrderStatus(PyEnum):
     PENDING = "PENDING"
