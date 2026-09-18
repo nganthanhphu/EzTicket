@@ -803,6 +803,8 @@ def register_auth_route(app):
             float(request.form["price"]),
             int(request.form["quantity"]),
         )
+        if success:
+            utils.handle_event_info_change_notification(event)
         flash(message)
         return redirect(url_for("organizer_edit_event", event_id=ticket.event_id))
 
